@@ -16,9 +16,12 @@ export const getRedirectPathByRole = (roleId) => {
   const applicantRole = "7"; // APPLICANT
   const adminRole = "1"; // ADMIN
 
-  if (roleId.toString() === "3") {
-    // SP - Service Provider
+  if (roleId.toString() === "2") {
+    return "/authority/dc-dashboard";
+  } else if (roleId.toString() === "3") {
     return "/authority/sp-dashboard";
+  } else if (roleId.toString() === "4") {
+    return "/authority/sdpo-dashboard";
   } else if (authorityRoles.includes(roleId.toString())) {
     return "/authority-dashboard";
   } else if (roleId.toString() === applicantRole) {

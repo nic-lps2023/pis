@@ -12,32 +12,30 @@ const AuthorityInbox = () => {
   const [forwarding, setForwarding] = useState(false);
   const navigate = useNavigate();
 
-  /**
-   * Map role to corresponding stage in the workflow
-   */
-  const getRoleToStageMapping = (roleName, roleId) => {
+  const getRoleToStageMappings = (roleName, roleId) => {
     const roleIdStageMap = {
-      "2": "DC_PENDING",
-      "3": "SP_PENDING",
-      "4": "SDPO_PENDING",
-      "5": "OC_PENDING",
-      "6": "SP_PENDING",
+      "2": ["DC_PENDING", "DC_FINAL_PENDING"],
+      "3": ["SP_PENDING", "SP_REVIEW_PENDING"],
+      "4": ["SDPO_PENDING", "SDPO_REVIEW_PENDING"],
+      "5": ["OC_PENDING"],
+      "6": ["SP_PENDING", "SP_REVIEW_PENDING"],
     };
 
-    const stageByRoleId = roleIdStageMap[String(roleId || "")];
-    if (stageByRoleId) return stageByRoleId;
+    const stagesByRoleId = roleIdStageMap[String(roleId || "")];
+    if (stagesByRoleId) return stagesByRoleId;
 
     const roleStageMap = {
-      DEPUTY_COMMISSIONER: "DC_PENDING",
-      STATE_POLICE: "SP_PENDING",
-      SP: "SP_PENDING",
-      AUTHORITY: "SP_PENDING",
-      SUB_DIVISIONAL_POLICE_OFFICER: "SDPO_PENDING",
-      SDPO: "SDPO_PENDING",
-      OFFICER_IN_CHARGE: "OC_PENDING",
-      OC: "OC_PENDING",
+      DEPUTY_COMMISSIONER: ["DC_PENDING", "DC_FINAL_PENDING"],
+      STATE_POLICE: ["SP_PENDING", "SP_REVIEW_PENDING"],
+      SP: ["SP_PENDING", "SP_REVIEW_PENDING"],
+      AUTHORITY: ["SP_PENDING", "SP_REVIEW_PENDING"],
+      SUB_DIVISIONAL_POLICE_OFFICER: ["SDPO_PENDING", "SDPO_REVIEW_PENDING"],
+      SDPO: ["SDPO_PENDING", "SDPO_REVIEW_PENDING"],
+      OFFICER_IN_CHARGE: ["OC_PENDING"],
+      OC: ["OC_PENDING"],
     };
-    return roleStageMap[roleName] || "DC_PENDING";
+
+    return roleStageMap[roleName] || ["DC_PENDING"];
   };
 
   useEffect(() => {
@@ -58,14 +56,19 @@ const AuthorityInbox = () => {
         return;
       }
 
-      const stage = getRoleToStageMapping(roleName, roleId);
+      const stages = getRoleToStageMappings(roleName, roleId);
 
-      console.log(`Loading inbox for role: ${roleName} (${roleId}), stage: ${stage}`);
+      console.log(`Loading inbox for role: ${roleName} (${roleId}), stages: ${stages.join(", ")}`);
 
-      getInboxByStage(stage)
-        .then((res) => {
-          console.log("Inbox loaded successfully:", res.data);
-          setApplications(res.data);
+      Promise.all(stages.map((stage) => getInboxByStage(stage)))
+        .then((responses) => {
+          const merged = responses.flatMap((res) => res.data || []);
+          const deduped = Array.from(
+            new Map(merged.map((item) => [item.applicationId, item])).values()
+          );
+
+          console.log("Inbox loaded successfully:", deduped);
+          setApplications(deduped);
           setLoading(false);
         })
         .catch((err) => {

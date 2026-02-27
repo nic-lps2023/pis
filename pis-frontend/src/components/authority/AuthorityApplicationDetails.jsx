@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   getApplicationById,
   forwardToSP,
@@ -16,6 +16,7 @@ import {
 const AuthorityApplicationDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [app, setApp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,6 +25,29 @@ const AuthorityApplicationDetails = () => {
   const [report, setReport] = useState("");
 
   const roleName = localStorage.getItem("roleName");
+
+  const getRoleDashboardPath = () => {
+    const roleId = localStorage.getItem("roleId");
+    if (roleId === "2") return "/authority/dc-dashboard";
+    if (roleId === "3") return "/authority/sp-dashboard";
+    if (roleId === "4") return "/authority/sdpo-dashboard";
+    if (roleId === "5") return "/authority-dashboard";
+    return "/authority/inbox";
+  };
+
+  const handleBack = () => {
+    if (location.state?.from) {
+      navigate(location.state.from);
+      return;
+    }
+
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(getRoleDashboardPath());
+  };
 
   useEffect(() => {
     loadApplication();
@@ -275,7 +299,7 @@ const AuthorityApplicationDetails = () => {
   };
 
   if (loading) return <p className="text-center mt-4">Loading application details...</p>;
-  if (error) return <div className="container mt-4"><div className="alert alert-danger">{error}</div><button className="btn btn-secondary" onClick={() => navigate("/authority/inbox")}>Back to Inbox</button></div>;
+  if (error) return <div className="container mt-4"><div className="alert alert-danger">{error}</div><button className="btn btn-secondary" onClick={handleBack}>Back</button></div>;
   if (!app) return <p className="text-center mt-4 text-danger">Failed to load application</p>;
 
   // Debug logs
@@ -513,8 +537,8 @@ const AuthorityApplicationDetails = () => {
       </div>
 
       <div className="text-center mt-4">
-        <button className="btn btn-secondary" onClick={() => navigate("/authority/inbox")}>
-          Back to Inbox
+        <button className="btn btn-secondary" onClick={handleBack}>
+          Back
         </button>
       </div>
     </div>

@@ -230,7 +230,9 @@ const SPDashboard = () => {
                     <button
                       className="btn btn-info"
                       onClick={() =>
-                        navigate(`/authority/application/${app.applicationId}`)
+                        navigate(`/authority/application/${app.applicationId}`, {
+                          state: { from: "/authority/sp-dashboard", tab: activeTab },
+                        })
                       }
                       title="View full details"
                     >

@@ -41,10 +41,12 @@ public class AuthorityController {
             @PathVariable String stage,
             @RequestHeader(value = "X-Role-Id", required = false) String roleId) {
 
-        if ("4".equals(roleId) && !"SDPO_PENDING".equalsIgnoreCase(stage)) {
+        if ("4".equals(roleId)
+                && !"SDPO_PENDING".equalsIgnoreCase(stage)
+                && !"SDPO_REVIEW_PENDING".equalsIgnoreCase(stage)) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "Role 4 (SDPO) is allowed to access only SDPO_PENDING stage");
+                    "Role 4 (SDPO) is allowed to access only SDPO_PENDING and SDPO_REVIEW_PENDING stages");
         }
 
         return ResponseEntity.ok(authorityService.getInboxByStage(stage));

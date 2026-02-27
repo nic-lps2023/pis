@@ -10,6 +10,7 @@ import AuthorityDashboard from "./components/authority/AuthorityDashboard";
 import SPDashboard from "./components/authority/SPDashboard";
 import SDPODashboard from "./components/authority/SDPODashboard";
 import OCDashboard from "./components/authority/OCDashboard";
+import DCDashboard from "./components/authority/DCDashboard";
 import AuthorityInbox from "./components/authority/AuthorityInbox";
 import AuthorityApplicationDetails from "./components/authority/AuthorityApplicationDetails";
 
@@ -71,6 +72,16 @@ function App() {
             element={
               <PrivateRoute allowedRoles={[2, 3, 4, 5, 6]}>
                 <AuthorityDashboard />
+              </PrivateRoute>
+            }
+          />
+
+          {/* SP Dashboard - Role 3 */}
+          <Route
+            path="/authority/dc-dashboard"
+            element={
+              <PrivateRoute allowedRoles={[2]}>
+                <DCDashboard />
               </PrivateRoute>
             }
           />

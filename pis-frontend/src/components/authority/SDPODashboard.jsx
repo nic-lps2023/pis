@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { getInboxByStage, forwardToOC, downloadDocument } from "../../services/AuthorityService";
+import { getInboxByStage, forwardToOC, forwardToSPFromSDPO, downloadDocument } from "../../services/AuthorityService";
 import { useNavigate } from "react-router-dom";
 
 const SDPODashboard = () => {
-  const [applications, setApplications] = useState([]);
+  const [applications, setApplications] = useState({ pending: [], review: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState(null);
   const [actionRemarks, setActionRemarks] = useState("");
+  const [actionType, setActionType] = useState(""); // "forward-oc" | "forward-sp"
   const [processing, setProcessing] = useState(false);
+  const [activeTab, setActiveTab] = useState("pending");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,10 +22,14 @@ const SDPODashboard = () => {
     setLoading(true);
     setError(null);
 
-    getInboxByStage("SDPO_PENDING")
-      .then((res) => {
-        console.log("SDPO_PENDING:", res.data);
-        setApplications(res.data || []);
+    Promise.all([getInboxByStage("SDPO_PENDING"), getInboxByStage("SDPO_REVIEW_PENDING")])
+      .then(([pendingRes, reviewRes]) => {
+        console.log("SDPO_PENDING:", pendingRes.data);
+        console.log("SDPO_REVIEW_PENDING:", reviewRes.data);
+        setApplications({
+          pending: pendingRes.data || [],
+          review: reviewRes.data || [],
+        });
         setLoading(false);
       })
       .catch((err) => {
@@ -68,6 +74,35 @@ const SDPODashboard = () => {
       });
   };
 
+  const handleForwardToSP = () => {
+    if (!actionRemarks.trim()) {
+      alert("Please enter remarks before forwarding");
+      return;
+    }
+
+    setProcessing(true);
+    forwardToSPFromSDPO(selectedAppId, actionRemarks)
+      .then((res) => {
+        console.log("Application forwarded to SP:", res.data);
+        alert("Application forwarded to SP for review successfully!");
+        setShowActionModal(false);
+        setActionRemarks("");
+        setSelectedAppId(null);
+        setActionType("");
+        loadApplications();
+      })
+      .catch((err) => {
+        console.error("Error forwarding application:", err);
+        alert(
+          err.response?.data?.message ||
+            "Failed to forward application. Please try again."
+        );
+      })
+      .finally(() => {
+        setProcessing(false);
+      });
+  };
+
   /**
    * Handle document download
    */
@@ -91,8 +126,9 @@ const SDPODashboard = () => {
   /**
    * Open action modal
    */
-  const openActionModal = (appId) => {
+  const openActionModal = (appId, type) => {
     setSelectedAppId(appId);
+    setActionType(type);
     setActionRemarks("");
     setShowActionModal(true);
   };
@@ -104,18 +140,38 @@ const SDPODashboard = () => {
     setShowActionModal(false);
     setSelectedAppId(null);
     setActionRemarks("");
+    setActionType("");
   };
 
   if (loading) return <p className="text-center mt-4">Loading...</p>;
 
-  const currentList = applications || [];
+  const currentList = activeTab === "pending" ? applications.pending || [] : applications.review || [];
 
   return (
     <div className="container mt-4">
       <h2 className="text-center">SDPO (Sub-Divisional Police Officer) Dashboard</h2>
-      <p className="text-center text-muted">Manage OC assignments</p>
+      <p className="text-center text-muted">Manage pending and review stage applications</p>
 
       {error && <div className="alert alert-danger">{error}</div>}
+
+      <ul className="nav nav-tabs mt-4" role="tablist">
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "pending" ? "active" : ""}`}
+            onClick={() => setActiveTab("pending")}
+          >
+            📋 Pending ({applications.pending?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "review" ? "active" : ""}`}
+            onClick={() => setActiveTab("review")}
+          >
+            🔍 For Review ({applications.review?.length || 0})
+          </button>
+        </li>
+      </ul>
 
       {currentList.length === 0 && !error && (
         <p className="text-center mt-4 text-muted">No applications to display</p>
@@ -167,19 +223,30 @@ const SDPODashboard = () => {
                     <button
                       className="btn btn-info"
                       onClick={() =>
-                        navigate(`/authority/application/${app.applicationId}`)
+                        navigate(`/authority/application/${app.applicationId}`, {
+                          state: { from: "/authority/sdpo-dashboard", tab: activeTab },
+                        })
                       }
                       title="View full details"
                     >
                       Details
                     </button>
-                    {app.currentStage === "SDPO_PENDING" && (
+                    {activeTab === "pending" && app.currentStage === "SDPO_PENDING" && (
                       <button
                         className="btn btn-success"
-                        onClick={() => openActionModal(app.applicationId)}
+                        onClick={() => openActionModal(app.applicationId, "forward-oc")}
                         title="Assign to OC"
                       >
                         OC →
+                      </button>
+                    )}
+                    {activeTab === "review" && app.currentStage === "SDPO_REVIEW_PENDING" && (
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => openActionModal(app.applicationId, "forward-sp")}
+                        title="Forward to SP for review"
+                      >
+                        SP →
                       </button>
                     )}
                   </div>
@@ -197,7 +264,9 @@ const SDPODashboard = () => {
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">
-                  Assign to OC (Officer-in-Charge)
+                  {actionType === "forward-oc"
+                    ? "Assign to OC (Officer-in-Charge)"
+                    : "Forward to SP for Review"}
                 </h5>
                 <button
                   type="button"
@@ -209,7 +278,7 @@ const SDPODashboard = () => {
               <div className="modal-body">
                 <div className="mb-3">
                   <label htmlFor="action-remarks" className="form-label">
-                    Assignment Details{" "}
+                    Remarks{" "}
                     <span className="text-danger">*</span>
                   </label>
                   <textarea
@@ -218,7 +287,11 @@ const SDPODashboard = () => {
                     rows="4"
                     value={actionRemarks}
                     onChange={(e) => setActionRemarks(e.target.value)}
-                    placeholder="Enter assignment details for OC..."
+                    placeholder={
+                      actionType === "forward-oc"
+                        ? "Enter assignment details for OC..."
+                        : "Enter your SDPO review remarks for SP..."
+                    }
                     disabled={processing}
                   ></textarea>
                 </div>
@@ -235,16 +308,21 @@ const SDPODashboard = () => {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  onClick={handleForwardToOC}
+                  onClick={actionType === "forward-oc" ? handleForwardToOC : handleForwardToSP}
                   disabled={processing || !actionRemarks.trim()}
                 >
-                  {processing ? "Processing..." : "Assign to OC"}
+                  {processing
+                    ? "Processing..."
+                    : actionType === "forward-oc"
+                    ? "Assign to OC"
+                    : "Forward to SP"}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };
