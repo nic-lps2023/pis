@@ -1,0 +1,25 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Java / Maven (backend)
+**/target/
+.mvn/wrapper/maven-wrapper.jar
+
+# Node / Vite (frontend)
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Runtime uploads
+pis-backend/uploads/
