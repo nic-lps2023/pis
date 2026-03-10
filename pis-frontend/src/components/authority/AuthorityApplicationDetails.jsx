@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   getApplicationById,
+  getAuthorityHistory,
   forwardToSP,
   forwardToSDPO,
   forwardToOC,
@@ -10,7 +11,8 @@ import {
   recommendToDC,
   approveByDC,
   rejectByDC,
-  downloadDocument
+  downloadDocument,
+  downloadGeneratedPermit
 } from "../../services/AuthorityService";
 
 const AuthorityApplicationDetails = () => {
@@ -18,11 +20,19 @@ const AuthorityApplicationDetails = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [app, setApp] = useState(null);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [remarks, setRemarks] = useState("");
   const [report, setReport] = useState("");
+
+  const getLocationText = (application) =>
+    application?.fullAddress ||
+    [application?.venueName, application?.locality, application?.pincode]
+      .filter(Boolean)
+      .join(", ") ||
+    "N/A";
 
   const roleName = localStorage.getItem("roleName");
 
@@ -51,7 +61,23 @@ const AuthorityApplicationDetails = () => {
 
   useEffect(() => {
     loadApplication();
+    loadHistory();
   }, [id]);
+
+  const loadHistory = () => {
+    getAuthorityHistory(id)
+      .then((res) => {
+        setHistory(res.data || []);
+      })
+      .catch((err) => {
+        console.error("Error loading authority history:", err);
+      });
+  };
+
+  const refreshDetails = () => {
+    loadApplication();
+    loadHistory();
+  };
 
   const loadApplication = () => {
     setLoading(true);
@@ -134,6 +160,33 @@ const AuthorityApplicationDetails = () => {
   };
 
   /**
+   * Download generated permit PDF
+   */
+  const handleDownloadGeneratedPermit = () => {
+    if (!app?.permitPath) {
+      alert("Generated permit is not available.");
+      return;
+    }
+
+    downloadGeneratedPermit(id)
+      .then((response) => {
+        const blob = new Blob([response.data], { type: "application/pdf" });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", app.permitFileName || `permit_${id}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((err) => {
+        console.error("Error downloading generated permit:", err);
+        alert("Error downloading generated permit. Please try again.");
+      });
+  };
+
+  /**
    * DC (DEPUTY_COMMISSIONER) at stage DC_PENDING forwards to SP
    */
   const handleDCForwardToSP = () => {
@@ -145,7 +198,7 @@ const AuthorityApplicationDetails = () => {
       .then(() => {
         alert("Application forwarded to SP successfully!");
         setRemarks("");
-        loadApplication();
+        refreshDetails();
       })
       .catch((err) => {
         console.error("Error forwarding to SP:", err);
@@ -165,7 +218,7 @@ const AuthorityApplicationDetails = () => {
       .then(() => {
         alert("Application forwarded to SDPO successfully!");
         setRemarks("");
-        loadApplication();
+        refreshDetails();
       })
       .catch((err) => {
         console.error("Error forwarding to SDPO:", err);
@@ -185,7 +238,7 @@ const AuthorityApplicationDetails = () => {
       .then(() => {
         alert("Application forwarded to OC successfully!");
         setRemarks("");
-        loadApplication();
+        refreshDetails();
       })
       .catch((err) => {
         console.error("Error forwarding to OC:", err);
@@ -205,7 +258,7 @@ const AuthorityApplicationDetails = () => {
       .then(() => {
         alert("Investigation report submitted successfully!");
         setReport("");
-        loadApplication();
+        refreshDetails();
       })
       .catch((err) => {
         console.error("Error submitting report:", err);
@@ -225,7 +278,7 @@ const AuthorityApplicationDetails = () => {
       .then(() => {
         alert("Application forwarded to SP for review!");
         setRemarks("");
-        loadApplication();
+        refreshDetails();
       })
       .catch((err) => {
         console.error("Error forwarding to SP:", err);
@@ -245,7 +298,7 @@ const AuthorityApplicationDetails = () => {
       .then(() => {
         alert("Recommendation sent to DC successfully!");
         setRemarks("");
-        loadApplication();
+        refreshDetails();
       })
       .catch((err) => {
         console.error("Error recommending to DC:", err);
@@ -265,7 +318,7 @@ const AuthorityApplicationDetails = () => {
       .then(() => {
         alert("Application approved! Permit generated successfully!");
         setRemarks("");
-        loadApplication();
+        refreshDetails();
         setTimeout(() => navigate("/authority/inbox"), 2000);
       })
       .catch((err) => {
@@ -289,7 +342,7 @@ const AuthorityApplicationDetails = () => {
       .then(() => {
         alert("Application rejected successfully!");
         setRemarks("");
-        loadApplication();
+        refreshDetails();
         setTimeout(() => navigate("/authority/inbox"), 2000);
       })
       .catch((err) => {
@@ -319,12 +372,14 @@ const AuthorityApplicationDetails = () => {
             <p><b>Application ID:</b> {app.applicationId}</p>
             <p><b>Event Title:</b> {app.eventTitle}</p>
             <p><b>Permit Type:</b> {app.permitType}</p>
-            <p><b>Location:</b> {app.locationTag}</p>
+            <p><b>Location:</b> {getLocationText(app)}</p>
+            <p><b>Police Station:</b> {app.policeStationName || "N/A"}</p>
           </div>
           <div className="col-md-6">
             <p><b>Status:</b> <span className="badge bg-primary">{app.status}</span></p>
             <p><b>Current Stage:</b> <span className="badge bg-info">{app.currentStage}</span></p>
             <p><b>Applicant User ID:</b> {app.userId}</p>
+            <p><b>Assigned OC:</b> {app.assignedOcName || "Auto-assignment pending"}</p>
             <p>
               <b>Document:</b> {app.documentFileName}{" "}
               {app.complete && (
@@ -387,6 +442,38 @@ const AuthorityApplicationDetails = () => {
         {app.ocReport && (
           <div className="alert alert-info mt-2">
             <b>OC Investigation Report:</b> {app.ocReport}
+          </div>
+        )}
+
+        {history.length > 0 && (
+          <div className="mt-4">
+            <h5>Authority Action History</h5>
+            <div className="table-responsive">
+              <table className="table table-sm table-bordered">
+                <thead className="table-light">
+                  <tr>
+                    <th>Date/Time</th>
+                    <th>Role</th>
+                    <th>Action</th>
+                    <th>Message</th>
+                    <th>Stage</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((entry) => (
+                    <tr key={entry.historyId}>
+                      <td>{entry.actionAt ? new Date(entry.actionAt).toLocaleString() : "N/A"}</td>
+                      <td>{entry.authorityRole || "N/A"}</td>
+                      <td>{entry.actionType || "N/A"}</td>
+                      <td>{entry.message || "-"}</td>
+                      <td>{(entry.previousStage || "-") + " → " + (entry.newStage || "-")}</td>
+                      <td>{(entry.previousStatus || "-") + " → " + (entry.newStatus || "-")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -517,6 +604,21 @@ const AuthorityApplicationDetails = () => {
         {app.currentStage === "COMPLETED" && (
           <div className="alert alert-success mt-4">
             <b>This application has been completed.</b> Final Status: <b>{app.status}</b>
+            {app.status === "APPROVED" && app.permitPath && (
+              <div className="mt-2">
+                <small className="text-success">
+                  <b>Permit Generated:</b>{" "}
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm p-0 align-baseline"
+                    onClick={handleDownloadGeneratedPermit}
+                    title="Download generated permit"
+                  >
+                    {app.permitFileName || "Download Permit"}
+                  </button>
+                </small>
+              </div>
+            )}
           </div>
         )}
 

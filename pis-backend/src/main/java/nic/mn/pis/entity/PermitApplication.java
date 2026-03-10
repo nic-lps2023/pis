@@ -44,14 +44,39 @@ public class PermitApplication {
     @Column(nullable = false)
     private String permitType;
 
-    @Column(nullable = false)
-    private String locationTag;
+    @ManyToOne
+    @JoinColumn(name = "police_station_id")
+    private PoliceStation policeStation;
+
+    @Column
+    private String venueName;
+
+    @Column
+    private String locality;
+
+    private String landmark;
+
+    @Column(length = 10)
+    private String pincode;
+
+    @Column(length = 1000)
+    private String fullAddress;
+
+    private Double latitude;
+
+    private Double longitude;
 
     @Column(nullable = true)
     private String documentPath;
 
     @Column(nullable = true)
     private String documentFileName;
+
+    @Column(nullable = true)
+    private String permitPath;
+
+    @Column(nullable = true)
+    private String permitFileName;
 
     /**
      * Main status representing the application state in the workflow:
@@ -101,4 +126,11 @@ public class PermitApplication {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
+
+    /**
+     * Auto-assigned Officer-in-Charge based on selected police station
+     */
+    @ManyToOne
+    @JoinColumn(name = "assigned_oc_user_id")
+    private User assignedOc;
 }

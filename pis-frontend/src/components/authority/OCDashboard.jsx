@@ -12,6 +12,11 @@ const OCDashboard = () => {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
+  const getLocationText = (app) =>
+    app.fullAddress ||
+    [app.venueName, app.locality, app.pincode].filter(Boolean).join(", ") ||
+    "N/A";
+
   useEffect(() => {
     loadApplications();
   }, []);
@@ -139,6 +144,7 @@ const OCDashboard = () => {
                 <th>Event Title</th>
                 <th>Event Date</th>
                 <th>Permit Type</th>
+                <th>Status</th>
                 <th>Location</th>
                 <th>Purpose</th>
                 <th>Document</th>
@@ -158,7 +164,16 @@ const OCDashboard = () => {
                       : "N/A"}
                   </td>
                   <td>{app.permitType}</td>
-                  <td>{app.locationTag}</td>
+                  <td>
+                    <span className="badge bg-info">{app.status}</span>
+                    {app.permitPath && (
+                      <span className="badge bg-success ms-2">Permit Available</span>
+                    )}
+                    {!app.permitPath && app.status === "APPROVED" && (
+                      <span className="badge bg-warning text-dark ms-2">Permit Missing</span>
+                    )}
+                  </td>
+                  <td>{getLocationText(app)}</td>
                   <td>
                     <small>{app.purpose?.substring(0, 50)}...</small>
                   </td>

@@ -14,9 +14,17 @@ public class PermitApplicationMapper {
         dto.setStartDateTime(app.getStartDateTime());
         dto.setEndDateTime(app.getEndDateTime());
         dto.setPermitType(app.getPermitType());
-        dto.setLocationTag(app.getLocationTag());
+        dto.setVenueName(app.getVenueName());
+        dto.setLocality(app.getLocality());
+        dto.setLandmark(app.getLandmark());
+        dto.setPincode(app.getPincode());
+        dto.setFullAddress(app.getFullAddress());
+        dto.setLatitude(app.getLatitude());
+        dto.setLongitude(app.getLongitude());
         dto.setDocumentPath(app.getDocumentPath());
         dto.setDocumentFileName(app.getDocumentFileName());
+        dto.setPermitPath(app.getPermitPath());
+        dto.setPermitFileName(app.getPermitFileName());
         dto.setStatus(app.getStatus());
         dto.setCurrentStage(app.getCurrentStage());
         dto.setDcRemarks(app.getDcRemarks());
@@ -26,6 +34,26 @@ public class PermitApplicationMapper {
 
         if (app.getUser() != null) {
             dto.setUserId(app.getUser().getUserId());
+        }
+
+        if (app.getPoliceStation() != null) {
+            dto.setPoliceStationId(app.getPoliceStation().getPoliceStationId());
+            dto.setPoliceStationName(app.getPoliceStation().getPoliceStationName());
+
+            if (app.getPoliceStation().getSubdivision() != null) {
+                dto.setSubdivisionId(app.getPoliceStation().getSubdivision().getSubdivisionId());
+                dto.setSubdivisionName(app.getPoliceStation().getSubdivision().getSubdivisionName());
+
+                if (app.getPoliceStation().getSubdivision().getDistrict() != null) {
+                    dto.setDistrictId(app.getPoliceStation().getSubdivision().getDistrict().getDistrictId());
+                    dto.setDistrictName(app.getPoliceStation().getSubdivision().getDistrict().getDistrictName());
+                }
+            }
+        }
+
+        if (app.getAssignedOc() != null) {
+            dto.setAssignedOcUserId(app.getAssignedOc().getUserId());
+            dto.setAssignedOcName(app.getAssignedOc().getFullName());
         }
 
         // Compute completeness for DC dashboard
@@ -57,9 +85,17 @@ public class PermitApplicationMapper {
         app.setStartDateTime(dto.getStartDateTime());
         app.setEndDateTime(dto.getEndDateTime());
         app.setPermitType(dto.getPermitType());
-        app.setLocationTag(dto.getLocationTag());
+        app.setVenueName(dto.getVenueName());
+        app.setLocality(dto.getLocality());
+        app.setLandmark(dto.getLandmark());
+        app.setPincode(dto.getPincode());
+        app.setFullAddress(dto.getFullAddress());
+        app.setLatitude(dto.getLatitude());
+        app.setLongitude(dto.getLongitude());
         app.setDocumentPath(dto.getDocumentPath());
         app.setDocumentFileName(dto.getDocumentFileName());
+        app.setPermitPath(dto.getPermitPath());
+        app.setPermitFileName(dto.getPermitFileName());
         app.setStatus(dto.getStatus());
         app.setCurrentStage(dto.getCurrentStage());
         app.setDcRemarks(dto.getDcRemarks());

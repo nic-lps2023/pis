@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUserId } from "../services/AuthService";
 import { createPermitApplicationWithPdf } from "../services/PermitApplicationService";
+import {
+  getAllDistricts,
+  getPoliceStationsBySubdivisionId,
+  getSubdivisionsByDistrictId,
+} from "../services/LocationService";
 
 const PermitApplicationComponent = () => {
   const [eventTitle, setEventTitle] = useState("");
@@ -9,10 +14,68 @@ const PermitApplicationComponent = () => {
   const [startDateTime, setStartDateTime] = useState("");
   const [endDateTime, setEndDateTime] = useState("");
   const [permitType, setPermitType] = useState("");
-  const [locationTag, setLocationTag] = useState("");
+  const [districtId, setDistrictId] = useState("");
+  const [subdivisionId, setSubdivisionId] = useState("");
+  const [policeStationId, setPoliceStationId] = useState("");
+  const [venueName, setVenueName] = useState("");
+  const [fullAddress, setFullAddress] = useState("");
+  const [locality, setLocality] = useState("");
+  const [landmark, setLandmark] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [file, setFile] = useState(null);
+  const [districts, setDistricts] = useState([]);
+  const [subdivisions, setSubdivisions] = useState([]);
+  const [policeStations, setPoliceStations] = useState([]);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    getAllDistricts()
+      .then((res) => setDistricts(res.data || []))
+      .catch((err) => console.error("Error loading districts:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!districtId) {
+      setSubdivisions([]);
+      setSubdivisionId("");
+      setPoliceStations([]);
+      setPoliceStationId("");
+      return;
+    }
+
+    getSubdivisionsByDistrictId(districtId)
+      .then((res) => {
+        setSubdivisions(res.data || []);
+        setSubdivisionId("");
+        setPoliceStations([]);
+        setPoliceStationId("");
+      })
+      .catch((err) => {
+        console.error("Error loading subdivisions:", err);
+        setSubdivisions([]);
+      });
+  }, [districtId]);
+
+  useEffect(() => {
+    if (!subdivisionId) {
+      setPoliceStations([]);
+      setPoliceStationId("");
+      return;
+    }
+
+    getPoliceStationsBySubdivisionId(subdivisionId)
+      .then((res) => {
+        setPoliceStations(res.data || []);
+        setPoliceStationId("");
+      })
+      .catch((err) => {
+        console.error("Error loading police stations:", err);
+        setPoliceStations([]);
+      });
+  }, [subdivisionId]);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -32,7 +95,20 @@ const PermitApplicationComponent = () => {
   const savePermitApplication = (e) => {
     e.preventDefault();
 
-    if (!eventTitle || !purpose || !startDateTime || !endDateTime || !permitType || !locationTag) {
+    if (
+      !eventTitle ||
+      !purpose ||
+      !startDateTime ||
+      !endDateTime ||
+      !permitType ||
+      !districtId ||
+      !subdivisionId ||
+      !policeStationId ||
+      !venueName ||
+      !fullAddress ||
+      !locality ||
+      !pincode
+    ) {
       alert("All fields are required!");
       return;
     }
@@ -57,7 +133,16 @@ const PermitApplicationComponent = () => {
       startDateTime,
       endDateTime,
       permitType,
-      locationTag,
+      districtId: parseInt(districtId),
+      subdivisionId: parseInt(subdivisionId),
+      policeStationId: parseInt(policeStationId),
+      venueName,
+      fullAddress,
+      locality,
+      landmark,
+      pincode,
+      latitude: latitude ? parseFloat(latitude) : null,
+      longitude: longitude ? parseFloat(longitude) : null,
       userId: parseInt(userId),
     };
 
@@ -71,6 +156,23 @@ const PermitApplicationComponent = () => {
         console.error("Error submitting permit application:", error);
         alert("Error while submitting permit application!");
       });
+  };
+
+  const showEventOnMap = () => {
+    const query =
+      latitude && longitude
+        ? `${latitude},${longitude}`
+        : [venueName, fullAddress, locality, pincode].filter(Boolean).join(", ");
+
+    if (!query.trim()) {
+      alert("Please enter venue/address first.");
+      return;
+    }
+
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
+      "_blank"
+    );
   };
 
   return (
@@ -142,14 +244,145 @@ const PermitApplicationComponent = () => {
             </div>
 
             <div className="form-group mb-2">
-              <label className="form-label">Location Tag:</label>
+              <label className="form-label">District:</label>
+              <select
+                className="form-control"
+                value={districtId}
+                onChange={(e) => setDistrictId(e.target.value)}
+              >
+                <option value="">-- Select District --</option>
+                {districts.map((district) => (
+                  <option key={district.districtId} value={district.districtId}>
+                    {district.districtName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group mb-2">
+              <label className="form-label">Sub Division:</label>
+              <select
+                className="form-control"
+                value={subdivisionId}
+                onChange={(e) => setSubdivisionId(e.target.value)}
+                disabled={!districtId}
+              >
+                <option value="">-- Select Sub Division --</option>
+                {subdivisions.map((subdivision) => (
+                  <option
+                    key={subdivision.subdivisionId}
+                    value={subdivision.subdivisionId}
+                  >
+                    {subdivision.subdivisionName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group mb-2">
+              <label className="form-label">Police Station:</label>
+              <select
+                className="form-control"
+                value={policeStationId}
+                onChange={(e) => setPoliceStationId(e.target.value)}
+                disabled={!subdivisionId}
+              >
+                <option value="">-- Select Police Station --</option>
+                {policeStations.map((station) => (
+                  <option
+                    key={station.policeStationId}
+                    value={station.policeStationId}
+                  >
+                    {station.policeStationName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group mb-2">
+              <label className="form-label">Venue Name:</label>
               <input
                 type="text"
                 className="form-control"
-                value={locationTag}
-                onChange={(e) => setLocationTag(e.target.value)}
-                placeholder="Enter location"
+                value={venueName}
+                onChange={(e) => setVenueName(e.target.value)}
+                placeholder="Enter venue name"
               />
+            </div>
+
+            <div className="form-group mb-2">
+              <label className="form-label">Detailed Address:</label>
+              <textarea
+                className="form-control"
+                rows="3"
+                value={fullAddress}
+                onChange={(e) => setFullAddress(e.target.value)}
+                placeholder="Enter complete event address"
+              ></textarea>
+            </div>
+
+            <div className="form-group mb-2">
+              <label className="form-label">Locality:</label>
+              <input
+                type="text"
+                className="form-control"
+                value={locality}
+                onChange={(e) => setLocality(e.target.value)}
+                placeholder="Enter locality"
+              />
+            </div>
+
+            <div className="form-group mb-2">
+              <label className="form-label">Landmark (Optional):</label>
+              <input
+                type="text"
+                className="form-control"
+                value={landmark}
+                onChange={(e) => setLandmark(e.target.value)}
+                placeholder="Enter landmark (optional)"
+              />
+            </div>
+
+            <div className="form-group mb-2">
+              <label className="form-label">Pincode:</label>
+              <input
+                type="text"
+                className="form-control"
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value)}
+                placeholder="Enter pincode"
+              />
+            </div>
+
+            <div className="row">
+              <div className="col-md-6 form-group mb-2">
+                <label className="form-label">Latitude (Optional):</label>
+                <input
+                  type="number"
+                  step="any"
+                  className="form-control"
+                  value={latitude}
+                  onChange={(e) => setLatitude(e.target.value)}
+                  placeholder="e.g. 24.8170"
+                />
+              </div>
+              <div className="col-md-6 form-group mb-2">
+                <label className="form-label">Longitude (Optional):</label>
+                <input
+                  type="number"
+                  step="any"
+                  className="form-control"
+                  value={longitude}
+                  onChange={(e) => setLongitude(e.target.value)}
+                  placeholder="e.g. 93.9368"
+                />
+              </div>
+            </div>
+
+            <div className="form-group mb-3">
+              <button type="button" className="btn btn-outline-primary" onClick={showEventOnMap}>
+                Show Event on Map
+              </button>
             </div>
 
             <div className="form-group mb-3">

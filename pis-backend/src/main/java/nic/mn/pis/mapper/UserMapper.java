@@ -28,6 +28,11 @@ public class UserMapper {
             userDto.setRoleName(user.getRole().getRoleName());
         }
 
+        if (user.getPoliceStation() != null) {
+            userDto.setPoliceStationId(user.getPoliceStation().getPoliceStationId());
+            userDto.setPoliceStationName(user.getPoliceStation().getPoliceStationName());
+        }
+
         return userDto;
     }
 
@@ -53,6 +58,12 @@ public class UserMapper {
             role.setRoleId(userDto.getRoleId());
             role.setRoleName(userDto.getRoleName());
             user.setRole(role);
+        }
+
+        if (userDto.getPoliceStationId() != null) {
+            nic.mn.pis.entity.PoliceStation policeStation = new nic.mn.pis.entity.PoliceStation();
+            policeStation.setPoliceStationId(userDto.getPoliceStationId());
+            user.setPoliceStation(policeStation);
         }
 
         return user;

@@ -11,6 +11,7 @@ export const getInboxByStage = (stage) =>
   axios.get(`${AUTHORITY_API_BASE_URL}/inbox/${stage}`, {
     headers: {
       "X-Role-Id": localStorage.getItem("roleId") || "",
+      "X-User-Id": localStorage.getItem("userId") || "",
     },
   });
 
@@ -19,6 +20,9 @@ export const getInboxByStage = (stage) =>
  */
 export const getApplicationById = (id) =>
   axios.get(`${PERMIT_API_BASE_URL}/${id}`);
+
+export const getAuthorityHistory = (id) =>
+  axios.get(`${AUTHORITY_API_BASE_URL}/history/${id}`);
 
 /**
  * DC forward to SP
@@ -81,5 +85,13 @@ export const downloadDocument = (applicationId) =>
  */
 export const viewDocument = (applicationId) =>
   axios.get(`${PERMIT_API_BASE_URL}/${applicationId}/view-document`, {
+    responseType: "blob",
+  });
+
+/**
+ * Download generated permit PDF
+ */
+export const downloadGeneratedPermit = (applicationId) =>
+  axios.get(`${PERMIT_API_BASE_URL}/${applicationId}/download-permit`, {
     responseType: "blob",
   });

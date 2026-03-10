@@ -3,10 +3,12 @@ package nic.mn.pis.service.impl;
 import lombok.AllArgsConstructor;
 import nic.mn.pis.dto.PermitApplicationDto;
 import nic.mn.pis.entity.PermitApplication;
+import nic.mn.pis.entity.PoliceStation;
 import nic.mn.pis.entity.User;
 import nic.mn.pis.exception.ResourceNotFoundException;
 import nic.mn.pis.mapper.PermitApplicationMapper;
 import nic.mn.pis.repository.PermitApplicationRepository;
+import nic.mn.pis.repository.PoliceStationRepository;
 import nic.mn.pis.repository.UserRepository;
 import nic.mn.pis.service.FileStorageService;
 import nic.mn.pis.service.PermitApplicationService;
@@ -26,7 +28,10 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
 
     private PermitApplicationRepository permitApplicationRepository;
     private UserRepository userRepository;
+    private PoliceStationRepository policeStationRepository;
     private FileStorageService fileStorageService;
+
+    private static final Long OC_ROLE_ID = 5L;
 
     @Override
     public PermitApplicationDto createApplication(PermitApplicationDto dto) {
@@ -37,6 +42,7 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
 
         PermitApplication application = PermitApplicationMapper.mapToEntity(dto);
         application.setUser(user);
+        applyLocationAndAssignment(application, dto);
         application.setStatus("SUBMITTED");
         application.setCurrentStage("DC_PENDING");
 
@@ -77,6 +83,7 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
 
         PermitApplication application = PermitApplicationMapper.mapToEntity(dto);
         application.setUser(user);
+        applyLocationAndAssignment(application, dto);
         application.setStatus("SUBMITTED");
         application.setCurrentStage("DC_PENDING");
 
@@ -152,7 +159,20 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
         application.setStartDateTime(dto.getStartDateTime());
         application.setEndDateTime(dto.getEndDateTime());
         application.setPermitType(dto.getPermitType());
-        application.setLocationTag(dto.getLocationTag());
+        application.setVenueName(dto.getVenueName());
+        application.setLocality(dto.getLocality());
+        application.setLandmark(dto.getLandmark());
+        application.setPincode(dto.getPincode());
+        application.setFullAddress(dto.getFullAddress());
+        application.setLatitude(dto.getLatitude());
+        application.setLongitude(dto.getLongitude());
+
+        if (dto.getPoliceStationId() != null) {
+            PoliceStation policeStation = policeStationRepository.findById(dto.getPoliceStationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Police station not found with id " + dto.getPoliceStationId()));
+            application.setPoliceStation(policeStation);
+            autoAssignOc(application, policeStation.getPoliceStationId());
+        }
 
         // Only update status if provided
         if (dto.getStatus() != null && !dto.getStatus().isEmpty()) {
@@ -169,5 +189,41 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
     private PermitApplication getApplicationByIdEntity(Long id) {
         return permitApplicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found with id: " + id));
+    }
+
+    private void applyLocationAndAssignment(PermitApplication application, PermitApplicationDto dto) {
+        if (dto.getPoliceStationId() == null) {
+            throw new ResourceNotFoundException("Police station is required");
+        }
+
+        PoliceStation policeStation = policeStationRepository.findById(dto.getPoliceStationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Police station not found with id " + dto.getPoliceStationId()));
+
+        application.setPoliceStation(policeStation);
+        application.setVenueName(dto.getVenueName());
+        application.setLocality(dto.getLocality());
+        application.setLandmark(dto.getLandmark());
+        application.setPincode(dto.getPincode());
+        application.setFullAddress(dto.getFullAddress());
+        application.setLatitude(dto.getLatitude());
+        application.setLongitude(dto.getLongitude());
+
+        autoAssignOc(application, policeStation.getPoliceStationId());
+    }
+
+    private void autoAssignOc(PermitApplication application, Long policeStationId) {
+        User assignedOc = userRepository
+                .findFirstByRole_RoleIdAndPoliceStation_PoliceStationIdAndIsActiveTrue(OC_ROLE_ID, policeStationId)
+                .orElseGet(() -> userRepository
+                        .findFirstByRole_RoleIdAndIsActiveTrue(OC_ROLE_ID)
+                        .orElse(null));
+
+        application.setAssignedOc(assignedOc);
+
+        if (assignedOc != null) {
+            logger.info("Auto-assigned OC userId=" + assignedOc.getUserId() + " for policeStationId=" + policeStationId);
+        } else {
+            logger.warning("No active OC found for policeStationId=" + policeStationId + ". Application remains unassigned at OC stage.");
+        }
     }
 }

@@ -20,10 +20,28 @@ public class PermitApplicationDto {
     private LocalDateTime startDateTime;
     private LocalDateTime endDateTime;
     private String permitType;
-    private String locationTag;
+
+    private Long districtId;
+    private String districtName;
+
+    private Long subdivisionId;
+    private String subdivisionName;
+
+    private Long policeStationId;
+    private String policeStationName;
+
+    private String venueName;
+    private String locality;
+    private String landmark;
+    private String pincode;
+    private String fullAddress;
+    private Double latitude;
+    private Double longitude;
 
     private String documentPath;
     private String documentFileName;
+    private String permitPath;
+    private String permitFileName;
 
     /**
      * Current status in the approval workflow
@@ -65,6 +83,12 @@ public class PermitApplicationDto {
      * User ID of the applicant who submitted the application
      */
     private Long userId;
+
+    /**
+     * Auto-assigned OC user details
+     */
+    private Long assignedOcUserId;
+    private String assignedOcName;
 
     /**
      * Flag indicating if application has all required information

@@ -49,6 +49,14 @@ export const getApplicationById = (id) =>
   axios.get(`${PERMIT_API_BASE_URL}/${id}`);
 
 /**
+ * Download generated permit PDF for an approved application
+ */
+export const downloadGeneratedPermit = (applicationId) =>
+  axios.get(`${PERMIT_API_BASE_URL}/${applicationId}/download-permit`, {
+    responseType: "blob",
+  });
+
+/**
  * Update application
  */
 export const updateApplication = (id, applicationDto) =>

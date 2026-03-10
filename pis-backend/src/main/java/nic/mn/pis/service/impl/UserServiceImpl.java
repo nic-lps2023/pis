@@ -6,6 +6,7 @@ import nic.mn.pis.entity.Role;
 import nic.mn.pis.entity.User;
 import nic.mn.pis.exception.ResourceNotFoundException;
 import nic.mn.pis.mapper.UserMapper;
+import nic.mn.pis.repository.PoliceStationRepository;
 import nic.mn.pis.repository.RoleRepository;
 import nic.mn.pis.repository.UserRepository;
 import nic.mn.pis.service.UserService;
@@ -22,6 +23,7 @@ public class UserServiceImpl implements UserService {
 
     private UserRepository userRepository;
     private RoleRepository roleRepository;
+    private PoliceStationRepository policeStationRepository;
     private BCryptPasswordEncoder passwordEncoder;
 
     @Override
@@ -38,6 +40,11 @@ public class UserServiceImpl implements UserService {
 
         user.setRole(role);
         user.setLastLogin(LocalDateTime.now());
+
+        if (userDto.getPoliceStationId() != null) {
+            user.setPoliceStation(policeStationRepository.findById(userDto.getPoliceStationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Police station does not exist with id " + userDto.getPoliceStationId())));
+        }
 
         User savedUser = userRepository.save(user);
 
@@ -77,6 +84,13 @@ public class UserServiceImpl implements UserService {
         user.setIsActive(updatedUserDetails.getIsActive());
         user.setIsVerified(updatedUserDetails.getIsVerified());
         user.setLastLogin(LocalDateTime.now());
+
+        if (updatedUserDetails.getPoliceStationId() != null) {
+            user.setPoliceStation(policeStationRepository.findById(updatedUserDetails.getPoliceStationId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Police station does not exist with id " + updatedUserDetails.getPoliceStationId())));
+        } else {
+            user.setPoliceStation(null);
+        }
 
         // Only update password if given
         if (updatedUserDetails.getPassword() != null && !updatedUserDetails.getPassword().isEmpty()) {

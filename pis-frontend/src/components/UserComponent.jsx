@@ -6,6 +6,11 @@ import {
   checkEmailExists,
   checkPhoneExists,
 } from "../services/UserService";
+import {
+  getAllDistricts,
+  getSubdivisionsByDistrictId,
+  getPoliceStationsBySubdivisionId,
+} from "../services/LocationService";
 
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -26,6 +31,14 @@ const UserComponent = () => {
 
   const [isVisible, setIsVisible] = useState(true);
 
+  const [roleId, setRoleId] = useState("");
+  const [districtId, setDistrictId] = useState("");
+  const [subdivisionId, setSubdivisionId] = useState("");
+  const [policeStationId, setPoliceStationId] = useState("");
+  const [districts, setDistricts] = useState([]);
+  const [subdivisions, setSubdivisions] = useState([]);
+  const [policeStations, setPoliceStations] = useState([]);
+
   const { id } = useParams();
   const navigator = useNavigate();
 
@@ -37,17 +50,97 @@ const UserComponent = () => {
     phoneNumber: "",
     gender: "",
     address: "",
+    policeStationId: "",
   });
+
+  const isOfficerInCharge = String(roleId) === "5";
+
+  useEffect(() => {
+    getAllDistricts()
+      .then((response) => {
+        setDistricts(response.data || []);
+      })
+      .catch((error) => {
+        console.error("Error loading districts:", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!districtId) {
+      setSubdivisions([]);
+      setSubdivisionId("");
+      setPoliceStations([]);
+      setPoliceStationId("");
+      return;
+    }
+
+    getSubdivisionsByDistrictId(districtId)
+      .then((response) => {
+        setSubdivisions(response.data || []);
+      })
+      .catch((error) => {
+        console.error("Error loading subdivisions:", error);
+        setSubdivisions([]);
+      });
+  }, [districtId]);
+
+  useEffect(() => {
+    if (!subdivisionId) {
+      setPoliceStations([]);
+      setPoliceStationId("");
+      return;
+    }
+
+    getPoliceStationsBySubdivisionId(subdivisionId)
+      .then((response) => {
+        setPoliceStations(response.data || []);
+      })
+      .catch((error) => {
+        console.error("Error loading police stations:", error);
+        setPoliceStations([]);
+      });
+  }, [subdivisionId]);
 
   useEffect(() => {
     if (id) {
       getUser(id)
-        .then((response) => {
-          setFullName(response.data.fullName);
-          setEmail(response.data.email);
-          setPhoneNumber(response.data.phoneNumber);
-          setGender(response.data.gender);
-          setAddress(response.data.address);
+        .then(async (response) => {
+          const user = response.data;
+          setFullName(user.fullName || "");
+          setEmail(user.email || "");
+          setPhoneNumber(user.phoneNumber || "");
+          setGender(user.gender || "");
+          setAddress(user.address || "");
+          setRoleId(String(user.roleId || ""));
+          setPoliceStationId(user.policeStationId ? String(user.policeStationId) : "");
+
+          if (user.policeStationId) {
+            try {
+              const allDistrictsResponse = await getAllDistricts();
+              const allDistricts = allDistrictsResponse.data || [];
+              setDistricts(allDistricts);
+
+              for (const district of allDistricts) {
+                const subdivisionRes = await getSubdivisionsByDistrictId(district.districtId);
+                const subdivisionList = subdivisionRes.data || [];
+
+                for (const subdivision of subdivisionList) {
+                  const stationRes = await getPoliceStationsBySubdivisionId(subdivision.subdivisionId);
+                  const stationList = stationRes.data || [];
+
+                  if (stationList.some((station) => station.policeStationId === user.policeStationId)) {
+                    setDistrictId(String(district.districtId));
+                    setSubdivisions(subdivisionList);
+                    setSubdivisionId(String(subdivision.subdivisionId));
+                    setPoliceStations(stationList);
+                    return;
+                  }
+                }
+              }
+            } catch (locationError) {
+              console.error("Error resolving location hierarchy for OC mapping:", locationError);
+            }
+          }
 
           setIsVisible(false);
         })
@@ -75,6 +168,10 @@ const UserComponent = () => {
         address,
         isActive,
         isVerified,
+        policeStationId:
+          isOfficerInCharge && policeStationId
+            ? parseInt(policeStationId)
+            : null,
       };
 
       if (id) {
@@ -121,7 +218,7 @@ const UserComponent = () => {
     } else errorsCopy.email = "";
 
     if (!phoneNumber.trim()) {
-      errorsCopy.phoneNumber = "Phone number is required";
+      errorsCopy.phoneNumber = "Phone no. is required";
       valid = false;
     } else errorsCopy.phoneNumber = "";
 
@@ -134,6 +231,13 @@ const UserComponent = () => {
       errorsCopy.address = "Address is required";
       valid = false;
     } else errorsCopy.address = "";
+
+    if (isOfficerInCharge && !policeStationId) {
+      errorsCopy.policeStationId = "Police station mapping is required for OC";
+      valid = false;
+    } else {
+      errorsCopy.policeStationId = "";
+    }
 
     setErrors(errorsCopy);
     return valid;
@@ -200,7 +304,10 @@ const UserComponent = () => {
                   placeholder="Enter Full Name"
                   value={fullName}
                   className={`form-control ${errors.fullName ? "is-invalid" : ""}`}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    setErrors((prev) => ({ ...prev, fullName: "" }));
+                  }}
                 />
                 {errors.fullName && (
                   <div className="invalid-feedback">{errors.fullName}</div>
@@ -215,7 +322,10 @@ const UserComponent = () => {
                     placeholder="Enter password"
                     value={password}
                     className={`form-control ${errors.password ? "is-invalid" : ""}`}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrors((prev) => ({ ...prev, password: "" }));
+                    }}
                   />
                   {errors.password && (
                     <div className="invalid-feedback">{errors.password}</div>
@@ -231,7 +341,10 @@ const UserComponent = () => {
                     placeholder="Re-enter password"
                     value={confirmpassword}
                     className={`form-control ${errors.confirmpassword ? "is-invalid" : ""}`}
-                    onChange={(e) => setConfirmpassword(e.target.value)}
+                    onChange={(e) => {
+                      setConfirmpassword(e.target.value);
+                      setErrors((prev) => ({ ...prev, confirmpassword: "" }));
+                    }}
                   />
                   {errors.confirmpassword && (
                     <div className="invalid-feedback">{errors.confirmpassword}</div>
@@ -245,11 +358,17 @@ const UserComponent = () => {
                   type="text"
                   placeholder="Enter email"
                   value={email}
-                  className={`form-control ${emailError ? "is-invalid" : ""}`}
-                  onChange={(e) => setEmail(e.target.value)}
+                  className={`form-control ${emailError || errors.email ? "is-invalid" : ""}`}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setErrors((prev) => ({ ...prev, email: "" }));
+                    if (emailError) setEmailError("");
+                  }}
                   onBlur={validateEmailExists}
                 />
-                {emailError && <p style={{ color: "red" }}>{emailError}</p>}
+                {(errors.email || emailError) && (
+                  <div className="invalid-feedback">{errors.email || emailError}</div>
+                )}
               </div>
 
               <div className="form-group mb-2">
@@ -258,11 +377,17 @@ const UserComponent = () => {
                   type="text"
                   placeholder="Enter Phone Number"
                   value={phoneNumber}
-                  className={`form-control ${phoneError ? "is-invalid" : ""}`}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className={`form-control ${phoneError || errors.phoneNumber ? "is-invalid" : ""}`}
+                  onChange={(e) => {
+                    setPhoneNumber(e.target.value);
+                    setErrors((prev) => ({ ...prev, phoneNumber: "" }));
+                    if (phoneError) setPhoneError("");
+                  }}
                   onBlur={validatePhoneExists}
                 />
-                {phoneError && <p style={{ color: "red" }}>{phoneError}</p>}
+                {(errors.phoneNumber || phoneError) && (
+                  <div className="invalid-feedback">{errors.phoneNumber || phoneError}</div>
+                )}
               </div>
 
               <div className="form-group mb-2">
@@ -315,12 +440,90 @@ const UserComponent = () => {
                   placeholder="Enter Address"
                   value={address}
                   className={`form-control ${errors.address ? "is-invalid" : ""}`}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    setErrors((prev) => ({ ...prev, address: "" }));
+                  }}
                 />
                 {errors.address && (
                   <div className="invalid-feedback">{errors.address}</div>
                 )}
               </div>
+
+              {isOfficerInCharge && (
+                <>
+                  <div className="form-group mb-2">
+                    <label className="form-label">District (OC Mapping)</label>
+                    <select
+                      className="form-control"
+                      value={districtId}
+                      onChange={(e) => {
+                        setDistrictId(e.target.value);
+                        setSubdivisionId("");
+                        setPoliceStationId("");
+                        setErrors((prev) => ({ ...prev, policeStationId: "" }));
+                      }}
+                    >
+                      <option value="">-- Select District --</option>
+                      {districts.map((district) => (
+                        <option key={district.districtId} value={district.districtId}>
+                          {district.districtName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group mb-2">
+                    <label className="form-label">Sub Division (OC Mapping)</label>
+                    <select
+                      className="form-control"
+                      value={subdivisionId}
+                      onChange={(e) => {
+                        setSubdivisionId(e.target.value);
+                        setPoliceStationId("");
+                        setErrors((prev) => ({ ...prev, policeStationId: "" }));
+                      }}
+                      disabled={!districtId}
+                    >
+                      <option value="">-- Select Sub Division --</option>
+                      {subdivisions.map((subdivision) => (
+                        <option
+                          key={subdivision.subdivisionId}
+                          value={subdivision.subdivisionId}
+                        >
+                          {subdivision.subdivisionName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group mb-2">
+                    <label className="form-label">Police Station (OC Mapping)</label>
+                    <select
+                      className={`form-control ${errors.policeStationId ? "is-invalid" : ""}`}
+                      value={policeStationId}
+                      onChange={(e) => {
+                        setPoliceStationId(e.target.value);
+                        setErrors((prev) => ({ ...prev, policeStationId: "" }));
+                      }}
+                      disabled={!subdivisionId}
+                    >
+                      <option value="">-- Select Police Station --</option>
+                      {policeStations.map((station) => (
+                        <option
+                          key={station.policeStationId}
+                          value={station.policeStationId}
+                        >
+                          {station.policeStationName}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.policeStationId && (
+                      <div className="invalid-feedback">{errors.policeStationId}</div>
+                    )}
+                  </div>
+                </>
+              )}
 
               <button className="btn btn-success" onClick={saveOrUpdateUser}>
                 Submit

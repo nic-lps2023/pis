@@ -1,5 +1,6 @@
 package nic.mn.pis.service;
 
+import nic.mn.pis.dto.AuthorityActionHistoryDto;
 import nic.mn.pis.dto.PermitApplicationDto;
 
 import java.util.List;
@@ -11,11 +12,18 @@ import java.util.List;
 public interface AuthorityService {
 
     /**
+     * Retrieve chronological action history for an application
+     * @param applicationId permit application id
+     * @return date-wise authority action history
+     */
+    List<AuthorityActionHistoryDto> getActionHistory(Long applicationId);
+
+    /**
      * Retrieve inbox applications at a specific workflow stage
      * @param stage the application stage (DC_PENDING, SP_PENDING, SDPO_PENDING, OC_PENDING, etc.)
      * @return list of applications at that stage
      */
-    List<PermitApplicationDto> getInboxByStage(String stage);
+    List<PermitApplicationDto> getInboxByStage(String stage, String roleId, Long userId);
 
     /**
      * Deputy Commissioner forwards application to State Police (SP)

@@ -1,6 +1,7 @@
 package nic.mn.pis.controller;
 
 import lombok.AllArgsConstructor;
+import nic.mn.pis.dto.AuthorityActionHistoryDto;
 import nic.mn.pis.dto.AuthorityActionRequest;
 import nic.mn.pis.dto.PermitApplicationDto;
 import nic.mn.pis.service.AuthorityService;
@@ -24,6 +25,11 @@ public class AuthorityController {
 
     private AuthorityService authorityService;
 
+    @GetMapping("/history/{id}")
+    public ResponseEntity<List<AuthorityActionHistoryDto>> getActionHistory(@PathVariable Long id) {
+        return ResponseEntity.ok(authorityService.getActionHistory(id));
+    }
+
     /**
      * Get inbox applications for a specific workflow stage
      *
@@ -39,7 +45,8 @@ public class AuthorityController {
     @GetMapping("/inbox/{stage}")
     public ResponseEntity<List<PermitApplicationDto>> getInbox(
             @PathVariable String stage,
-            @RequestHeader(value = "X-Role-Id", required = false) String roleId) {
+            @RequestHeader(value = "X-Role-Id", required = false) String roleId,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
 
         if ("4".equals(roleId)
                 && !"SDPO_PENDING".equalsIgnoreCase(stage)
@@ -49,7 +56,7 @@ public class AuthorityController {
                     "Role 4 (SDPO) is allowed to access only SDPO_PENDING and SDPO_REVIEW_PENDING stages");
         }
 
-        return ResponseEntity.ok(authorityService.getInboxByStage(stage));
+        return ResponseEntity.ok(authorityService.getInboxByStage(stage, roleId, userId));
     }
 
     /**

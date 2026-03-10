@@ -26,6 +26,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/roles/**").permitAll()
                 .requestMatchers("/api/files/**").permitAll()
                 .requestMatchers("/api/permit-applications/**").permitAll()
+            .requestMatchers("/api/districts").permitAll()
+                .requestMatchers("/api/districts/**").permitAll()
+            .requestMatchers("/api/subdivisions").permitAll()
+                .requestMatchers("/api/subdivisions/**").permitAll()
+            .requestMatchers("/api/police-stations").permitAll()
+                .requestMatchers("/api/police-stations/**").permitAll()
                 .anyRequest().authenticated()
         );
 

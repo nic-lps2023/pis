@@ -57,6 +57,7 @@ const ListUserComponent = () => {
             <th>Gender</th>
             <th>Address</th>
             <th>Role</th>
+            <th>Police Station</th>
             <th>Active</th>
             <th>Verified</th>
             <th colSpan="2">Actions</th>
@@ -73,6 +74,7 @@ const ListUserComponent = () => {
               <td>{user.gender}</td>
               <td>{user.address}</td>
               <td>{user.roleName}</td>
+              <td>{user.policeStationName || "-"}</td>
               <td>{user.isActive ? "YES" : "NO"}</td>
               <td>{user.isVerified ? "YES" : "NO"}</td>
 

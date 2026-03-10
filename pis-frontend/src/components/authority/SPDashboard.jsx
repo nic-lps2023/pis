@@ -14,6 +14,11 @@ const SPDashboard = () => {
   const [activeTab, setActiveTab] = useState("pending"); // "pending" or "review"
   const navigate = useNavigate();
 
+  const getLocationText = (app) =>
+    app.fullAddress ||
+    [app.venueName, app.locality, app.pincode].filter(Boolean).join(", ") ||
+    "N/A";
+
   useEffect(() => {
     loadApplications();
   }, []);
@@ -205,8 +210,14 @@ const SPDashboard = () => {
                 <td>{app.permitType}</td>
                 <td>
                   <span className="badge bg-info">{app.status}</span>
+                  {app.permitPath && (
+                    <span className="badge bg-success ms-2">Permit Available</span>
+                  )}
+                  {!app.permitPath && app.status === "APPROVED" && (
+                    <span className="badge bg-warning text-dark ms-2">Permit Missing</span>
+                  )}
                 </td>
-                <td>{app.locationTag}</td>
+                <td>{getLocationText(app)}</td>
                 <td>
                   {app.documentFileName ? (
                     <button
