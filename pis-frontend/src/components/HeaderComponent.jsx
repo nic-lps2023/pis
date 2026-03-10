@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { logout, isLoggedIn } from "../services/AuthService";
+import { logout, isLoggedIn, getFullName, getUserId } from "../services/AuthService";
 
 const HeaderComponent = () => {
   const navigator = useNavigate();
@@ -8,6 +8,13 @@ const HeaderComponent = () => {
   const logoutUser = () => {
     logout();
     navigator("/login");
+  };
+
+  const openMyProfile = () => {
+    const currentUserId = getUserId();
+    if (currentUserId) {
+      navigator(`/edit-register-user/${currentUserId}`);
+    }
   };
 
   return (
@@ -19,9 +26,15 @@ const HeaderComponent = () => {
           </a>
 
           {isLoggedIn() && (
-            <button className="btn btn-danger" onClick={logoutUser}>
-              Logout
-            </button>
+            <div className="d-flex align-items-center gap-2">
+              <span className="text-light">{getFullName() || "Account"}</span>
+              <button className="btn btn-outline-light" onClick={openMyProfile}>
+                My Profile
+              </button>
+              <button className="btn btn-danger" onClick={logoutUser}>
+                Logout
+              </button>
+            </div>
           )}
         </nav>
       </header>

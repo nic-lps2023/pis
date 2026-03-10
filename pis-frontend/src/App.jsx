@@ -60,7 +60,7 @@ function App() {
           <Route
             path="/edit-register-user/:id"
             element={
-              <PrivateRoute allowedRoles={[1]}>
+              <PrivateRoute>
                 <UserComponent />
               </PrivateRoute>
             }

@@ -5,14 +5,16 @@ import {
   updateUser,
   checkEmailExists,
   checkPhoneExists,
+  listRoles,
 } from "../services/UserService";
+import { getRoleId, getUserId } from "../services/AuthService";
 import {
   getAllDistricts,
   getSubdivisionsByDistrictId,
   getPoliceStationsBySubdivisionId,
 } from "../services/LocationService";
 
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 const UserComponent = () => {
   const [fullName, setFullName] = useState("");
@@ -29,7 +31,8 @@ const UserComponent = () => {
   const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
 
-  const [isVisible, setIsVisible] = useState(true);
+  const [enablePasswordChange, setEnablePasswordChange] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const [roleId, setRoleId] = useState("");
   const [districtId, setDistrictId] = useState("");
@@ -38,9 +41,14 @@ const UserComponent = () => {
   const [districts, setDistricts] = useState([]);
   const [subdivisions, setSubdivisions] = useState([]);
   const [policeStations, setPoliceStations] = useState([]);
+  const [roles, setRoles] = useState([]);
 
   const { id } = useParams();
   const navigator = useNavigate();
+  const isAdmin = String(getRoleId()) === "1";
+  const isEditMode = Boolean(id);
+  const currentUserId = getUserId();
+  const isOwnProfile = isEditMode && String(currentUserId) === String(id);
 
   const [errors, setErrors] = useState({
     fullName: "",
@@ -50,10 +58,15 @@ const UserComponent = () => {
     phoneNumber: "",
     gender: "",
     address: "",
+    roleId: "",
+    districtId: "",
+    subdivisionId: "",
     policeStationId: "",
   });
 
   const isOfficerInCharge = String(roleId) === "5";
+  const isSdpo = String(roleId) === "4";
+  const requiresDistrictSubdivisionMapping = isOfficerInCharge || isSdpo;
 
   useEffect(() => {
     getAllDistricts()
@@ -102,6 +115,21 @@ const UserComponent = () => {
   }, [subdivisionId]);
 
   useEffect(() => {
+    if (!isEditMode || !isAdmin) {
+      return;
+    }
+
+    listRoles()
+      .then((response) => {
+        setRoles(response.data || []);
+      })
+      .catch((error) => {
+        console.error("Error loading roles:", error);
+        setRoles([]);
+      });
+  }, [isEditMode, isAdmin]);
+
+  useEffect(() => {
     if (id) {
       getUser(id)
         .then(async (response) => {
@@ -112,9 +140,29 @@ const UserComponent = () => {
           setGender(user.gender || "");
           setAddress(user.address || "");
           setRoleId(String(user.roleId || ""));
+          setDistrictId(user.districtId ? String(user.districtId) : "");
+          setSubdivisionId(user.subdivisionId ? String(user.subdivisionId) : "");
           setPoliceStationId(user.policeStationId ? String(user.policeStationId) : "");
+          setIsActive(Boolean(user.isActive));
+          setIsVerified(Boolean(user.isVerified));
 
-          if (user.policeStationId) {
+          if (String(user.roleId) === "4" && user.subdivisionId) {
+            try {
+              const allDistrictsResponse = await getAllDistricts();
+              const allDistricts = allDistrictsResponse.data || [];
+              setDistricts(allDistricts);
+
+              if (user.districtId) {
+                const subdivisionRes = await getSubdivisionsByDistrictId(user.districtId);
+                const subdivisionList = subdivisionRes.data || [];
+                setSubdivisions(subdivisionList);
+              }
+            } catch (locationError) {
+              console.error("Error resolving location hierarchy for SDPO mapping:", locationError);
+            }
+          }
+
+          if (user.policeStationId && String(user.roleId) === "5") {
             try {
               const allDistrictsResponse = await getAllDistricts();
               const allDistricts = allDistrictsResponse.data || [];
@@ -142,7 +190,6 @@ const UserComponent = () => {
             }
           }
 
-          setIsVisible(false);
         })
         .catch((error) => {
           console.error("Error fetching user:", error);
@@ -168,6 +215,13 @@ const UserComponent = () => {
         address,
         isActive,
         isVerified,
+        ...(isEditMode && isAdmin
+          ? { roleId: roleId ? parseInt(roleId) : null }
+          : {}),
+        subdivisionId:
+          isSdpo && subdivisionId
+            ? parseInt(subdivisionId)
+            : null,
         policeStationId:
           isOfficerInCharge && policeStationId
             ? parseInt(policeStationId)
@@ -180,7 +234,31 @@ const UserComponent = () => {
           .catch((error) => console.error(error));
       } else {
         createUser(user)
-          .then(() => navigator("/login"))
+          .then(() => {
+            setRegistrationSuccess(true);
+            setFullName("");
+            setEmail("");
+            setPassword("");
+            setConfirmpassword("");
+            setPhoneNumber("");
+            setGender("");
+            setAddress("");
+            setEmailError("");
+            setPhoneError("");
+            setErrors({
+              fullName: "",
+              password: "",
+              confirmpassword: "",
+              email: "",
+              phoneNumber: "",
+              gender: "",
+              address: "",
+              roleId: "",
+              districtId: "",
+              subdivisionId: "",
+              policeStationId: "",
+            });
+          })
           .catch((error) => console.error(error));
       }
     }
@@ -195,11 +273,15 @@ const UserComponent = () => {
       valid = false;
     } else errorsCopy.fullName = "";
 
-    if (isVisible) {
+    if (!isEditMode || enablePasswordChange) {
       if (!password.trim()) {
         errorsCopy.password = "Password is required";
         valid = false;
       } else errorsCopy.password = "";
+    if (isEditMode && !enablePasswordChange) {
+      errorsCopy.password = "";
+      errorsCopy.confirmpassword = "";
+    }
 
       if (!confirmpassword.trim()) {
         errorsCopy.confirmpassword = "Confirm password is required";
@@ -231,6 +313,31 @@ const UserComponent = () => {
       errorsCopy.address = "Address is required";
       valid = false;
     } else errorsCopy.address = "";
+
+    if (isEditMode && isAdmin && !roleId) {
+      errorsCopy.roleId = "Role is required";
+      valid = false;
+    } else {
+      errorsCopy.roleId = "";
+    }
+
+    if (requiresDistrictSubdivisionMapping && !districtId) {
+      errorsCopy.districtId = isSdpo
+        ? "District mapping is required for SDPO"
+        : "District mapping is required for OC";
+      valid = false;
+    } else {
+      errorsCopy.districtId = "";
+    }
+
+    if (requiresDistrictSubdivisionMapping && !subdivisionId) {
+      errorsCopy.subdivisionId = isSdpo
+        ? "Sub Division mapping is required for SDPO"
+        : "Sub Division mapping is required for OC";
+      valid = false;
+    } else {
+      errorsCopy.subdivisionId = "";
+    }
 
     if (isOfficerInCharge && !policeStationId) {
       errorsCopy.policeStationId = "Police station mapping is required for OC";
@@ -282,7 +389,7 @@ const UserComponent = () => {
   };
 
   function pageTitle() {
-    return id ? (
+    return isEditMode ? (
       <h2 className="text-center">Update Profile</h2>
     ) : (
       <h2 className="text-center">User Registration Form</h2>
@@ -296,6 +403,12 @@ const UserComponent = () => {
           {pageTitle()}
 
           <div className="card-body">
+            {!isEditMode && registrationSuccess && (
+              <div className="alert alert-success" role="alert">
+                Registration successful. <Link to="/login">Click to Login</Link>
+              </div>
+            )}
+
             <form>
               <div className="form-group mb-2">
                 <label className="form-label">Full Name</label>
@@ -314,7 +427,7 @@ const UserComponent = () => {
                 )}
               </div>
 
-              {isVisible && (
+              {!isEditMode && (
                 <div className="form-group mb-2">
                   <label className="form-label">Password</label>
                   <input
@@ -333,7 +446,7 @@ const UserComponent = () => {
                 </div>
               )}
 
-              {isVisible && (
+              {!isEditMode && (
                 <div className="form-group mb-2">
                   <label className="form-label">Confirm Password</label>
                   <input
@@ -350,6 +463,72 @@ const UserComponent = () => {
                     <div className="invalid-feedback">{errors.confirmpassword}</div>
                   )}
                 </div>
+              )}
+
+              {isEditMode && isOwnProfile && (
+                <>
+                  <div className="form-group mb-2 form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="changePasswordToggle"
+                      checked={enablePasswordChange}
+                      onChange={(e) => {
+                        setEnablePasswordChange(e.target.checked);
+                        if (!e.target.checked) {
+                          setPassword("");
+                          setConfirmpassword("");
+                          setErrors((prev) => ({
+                            ...prev,
+                            password: "",
+                            confirmpassword: "",
+                          }));
+                        }
+                      }}
+                    />
+                    <label className="form-check-label" htmlFor="changePasswordToggle">
+                      Change Password
+                    </label>
+                  </div>
+
+                  {enablePasswordChange && (
+                    <div className="form-group mb-2">
+                      <label className="form-label">New Password</label>
+                      <input
+                        type="password"
+                        placeholder="Enter new password"
+                        value={password}
+                        className={`form-control ${errors.password ? "is-invalid" : ""}`}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setErrors((prev) => ({ ...prev, password: "" }));
+                        }}
+                      />
+                      {errors.password && (
+                        <div className="invalid-feedback">{errors.password}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {enablePasswordChange && (
+                    <div className="form-group mb-2">
+                      <label className="form-label">Confirm New Password</label>
+                      <input
+                        type="password"
+                        placeholder="Re-enter new password"
+                        value={confirmpassword}
+                        className={`form-control ${errors.confirmpassword ? "is-invalid" : ""}`}
+                        onChange={(e) => {
+                          setConfirmpassword(e.target.value);
+                          setErrors((prev) => ({ ...prev, confirmpassword: "" }));
+                        }}
+                      />
+                      {errors.confirmpassword && (
+                        <div className="invalid-feedback">{errors.confirmpassword}</div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="form-group mb-2">
@@ -450,18 +629,104 @@ const UserComponent = () => {
                 )}
               </div>
 
-              {isOfficerInCharge && (
+              {isEditMode && isAdmin && (
                 <>
                   <div className="form-group mb-2">
-                    <label className="form-label">District (OC Mapping)</label>
+                    <label className="form-label">Role</label>
                     <select
-                      className="form-control"
+                      className={`form-control ${errors.roleId ? "is-invalid" : ""}`}
+                      value={roleId}
+                      onChange={(e) => {
+                        const selectedRoleId = e.target.value;
+                        setRoleId(selectedRoleId);
+                        setErrors((prev) => ({ ...prev, roleId: "" }));
+
+                        if (selectedRoleId !== "5" && selectedRoleId !== "4") {
+                          setDistrictId("");
+                          setSubdivisionId("");
+                          setPoliceStationId("");
+                          setSubdivisions([]);
+                          setPoliceStations([]);
+                        }
+                      }}
+                    >
+                      <option value="">-- Select Role --</option>
+                      {roles.map((role) => (
+                        <option key={role.roleId} value={role.roleId}>
+                          {role.roleName}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.roleId && (
+                      <div className="invalid-feedback">{errors.roleId}</div>
+                    )}
+                  </div>
+
+                  <div className="form-group mb-2">
+                    <label className="form-label d-block">Active</label>
+                    <label style={{ marginRight: "16px" }}>
+                      <input
+                        type="radio"
+                        checked={isActive === true}
+                        onChange={() => setIsActive(true)}
+                        style={{ marginRight: "8px" }}
+                      />
+                      YES
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        checked={isActive === false}
+                        onChange={() => setIsActive(false)}
+                        style={{ marginRight: "8px" }}
+                      />
+                      NO
+                    </label>
+                  </div>
+
+                  <div className="form-group mb-2">
+                    <label className="form-label d-block">Verified</label>
+                    <label style={{ marginRight: "16px" }}>
+                      <input
+                        type="radio"
+                        checked={isVerified === true}
+                        onChange={() => setIsVerified(true)}
+                        style={{ marginRight: "8px" }}
+                      />
+                      YES
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        checked={isVerified === false}
+                        onChange={() => setIsVerified(false)}
+                        style={{ marginRight: "8px" }}
+                      />
+                      NO
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {requiresDistrictSubdivisionMapping && (
+                <>
+                  <div className="form-group mb-2">
+                    <label className="form-label">
+                      {isSdpo ? "District (SDPO Mapping)" : "District (OC Mapping)"}
+                    </label>
+                    <select
+                      className={`form-control ${errors.districtId ? "is-invalid" : ""}`}
                       value={districtId}
                       onChange={(e) => {
                         setDistrictId(e.target.value);
                         setSubdivisionId("");
                         setPoliceStationId("");
-                        setErrors((prev) => ({ ...prev, policeStationId: "" }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          districtId: "",
+                          subdivisionId: "",
+                          policeStationId: "",
+                        }));
                       }}
                     >
                       <option value="">-- Select District --</option>
@@ -471,17 +736,26 @@ const UserComponent = () => {
                         </option>
                       ))}
                     </select>
+                    {errors.districtId && (
+                      <div className="invalid-feedback">{errors.districtId}</div>
+                    )}
                   </div>
 
                   <div className="form-group mb-2">
-                    <label className="form-label">Sub Division (OC Mapping)</label>
+                    <label className="form-label">
+                      {isSdpo ? "Sub Division (SDPO Mapping)" : "Sub Division (OC Mapping)"}
+                    </label>
                     <select
-                      className="form-control"
+                      className={`form-control ${errors.subdivisionId ? "is-invalid" : ""}`}
                       value={subdivisionId}
                       onChange={(e) => {
                         setSubdivisionId(e.target.value);
                         setPoliceStationId("");
-                        setErrors((prev) => ({ ...prev, policeStationId: "" }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          subdivisionId: "",
+                          policeStationId: "",
+                        }));
                       }}
                       disabled={!districtId}
                     >
@@ -495,33 +769,38 @@ const UserComponent = () => {
                         </option>
                       ))}
                     </select>
-                  </div>
-
-                  <div className="form-group mb-2">
-                    <label className="form-label">Police Station (OC Mapping)</label>
-                    <select
-                      className={`form-control ${errors.policeStationId ? "is-invalid" : ""}`}
-                      value={policeStationId}
-                      onChange={(e) => {
-                        setPoliceStationId(e.target.value);
-                        setErrors((prev) => ({ ...prev, policeStationId: "" }));
-                      }}
-                      disabled={!subdivisionId}
-                    >
-                      <option value="">-- Select Police Station --</option>
-                      {policeStations.map((station) => (
-                        <option
-                          key={station.policeStationId}
-                          value={station.policeStationId}
-                        >
-                          {station.policeStationName}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.policeStationId && (
-                      <div className="invalid-feedback">{errors.policeStationId}</div>
+                    {errors.subdivisionId && (
+                      <div className="invalid-feedback">{errors.subdivisionId}</div>
                     )}
                   </div>
+
+                  {isOfficerInCharge && (
+                    <div className="form-group mb-2">
+                      <label className="form-label">Police Station (OC Mapping)</label>
+                      <select
+                        className={`form-control ${errors.policeStationId ? "is-invalid" : ""}`}
+                        value={policeStationId}
+                        onChange={(e) => {
+                          setPoliceStationId(e.target.value);
+                          setErrors((prev) => ({ ...prev, policeStationId: "" }));
+                        }}
+                        disabled={!subdivisionId}
+                      >
+                        <option value="">-- Select Police Station --</option>
+                        {policeStations.map((station) => (
+                          <option
+                            key={station.policeStationId}
+                            value={station.policeStationId}
+                          >
+                            {station.policeStationName}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.policeStationId && (
+                        <div className="invalid-feedback">{errors.policeStationId}</div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
 
@@ -532,9 +811,9 @@ const UserComponent = () => {
               <button
                 type="button"
                 className="btn btn-secondary ms-2"
-                onClick={() => navigator("/login")}
+                onClick={() => navigator(isEditMode && isAdmin ? "/users" : "/login")}
               >
-                Back to Login
+                {isEditMode && isAdmin ? "Back to Users" : "Back to Login"}
               </button>
             </form>
           </div>

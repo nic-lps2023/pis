@@ -1,8 +1,10 @@
 package nic.mn.pis.security;
 
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -18,9 +20,13 @@ public class SecurityConfig {
 
         http.csrf(csrf -> csrf.disable());
 
-        http.cors(cors -> cors.disable()); // ✅ IMPORTANT (temporary fix)
+        // Enable CORS so browser preflight requests from LAN clients are handled correctly.
+        http.cors(Customizer.withDefaults());
 
         http.authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/api/users/*").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/users/*").authenticated()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/users/**").permitAll()
                 .requestMatchers("/api/roles/**").permitAll()

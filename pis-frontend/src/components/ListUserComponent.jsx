@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { deleteUser, listUsers } from "../services/UserService";
 import { useNavigate } from "react-router-dom";
+import { getRoleId } from "../services/AuthService";
 
 const ListUserComponent = () => {
   const [users, setUsers] = useState([]);
 
   const navigator = useNavigate();
+  const isAdmin = String(getRoleId()) === "1";
 
   useEffect(() => {
     getAllUsers();
@@ -19,10 +21,6 @@ const ListUserComponent = () => {
       .catch((error) => {
         console.error(error);
       });
-  }
-
-  function registerNewUser() {
-    navigator("/register-user");
   }
 
   function updateUser(userId) {
@@ -43,10 +41,6 @@ const ListUserComponent = () => {
     <div className="container">
       <h2 className="text-center">List of Users</h2>
 
-      <button className="btn btn-primary mb-2" onClick={registerNewUser}>
-        Register Now
-      </button>
-
       <table className="table table-striped table-bordered">
         <thead>
           <tr>
@@ -57,6 +51,8 @@ const ListUserComponent = () => {
             <th>Gender</th>
             <th>Address</th>
             <th>Role</th>
+            <th>District</th>
+            <th>Sub Division</th>
             <th>Police Station</th>
             <th>Active</th>
             <th>Verified</th>
@@ -74,26 +70,32 @@ const ListUserComponent = () => {
               <td>{user.gender}</td>
               <td>{user.address}</td>
               <td>{user.roleName}</td>
+              <td>{user.districtName || "-"}</td>
+              <td>{user.subdivisionName || "-"}</td>
               <td>{user.policeStationName || "-"}</td>
               <td>{user.isActive ? "YES" : "NO"}</td>
               <td>{user.isVerified ? "YES" : "NO"}</td>
 
               <td>
-                <button
-                  className="btn btn-info"
-                  onClick={() => updateUser(user.userId)}
-                >
-                  Update
-                </button>
+                {isAdmin && (
+                  <button
+                    className="btn btn-info"
+                    onClick={() => updateUser(user.userId)}
+                  >
+                    Update
+                  </button>
+                )}
               </td>
 
               <td>
-                <button
-                  className="btn btn-danger"
-                  onClick={() => removeUser(user.userId)}
-                >
-                  Delete
-                </button>
+                {isAdmin && (
+                  <button
+                    className="btn btn-danger"
+                    onClick={() => removeUser(user.userId)}
+                  >
+                    Delete
+                  </button>
+                )}
               </td>
             </tr>
           ))}

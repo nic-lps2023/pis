@@ -3,11 +3,13 @@ package nic.mn.pis.service.impl;
 import lombok.AllArgsConstructor;
 import nic.mn.pis.dto.UserDto;
 import nic.mn.pis.entity.Role;
+import nic.mn.pis.entity.Subdivision;
 import nic.mn.pis.entity.User;
 import nic.mn.pis.exception.ResourceNotFoundException;
 import nic.mn.pis.mapper.UserMapper;
 import nic.mn.pis.repository.PoliceStationRepository;
 import nic.mn.pis.repository.RoleRepository;
+import nic.mn.pis.repository.SubdivisionRepository;
 import nic.mn.pis.repository.UserRepository;
 import nic.mn.pis.service.UserService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,6 +26,7 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
     private RoleRepository roleRepository;
     private PoliceStationRepository policeStationRepository;
+    private SubdivisionRepository subdivisionRepository;
     private BCryptPasswordEncoder passwordEncoder;
 
     @Override
@@ -85,11 +88,36 @@ public class UserServiceImpl implements UserService {
         user.setIsVerified(updatedUserDetails.getIsVerified());
         user.setLastLogin(LocalDateTime.now());
 
-        if (updatedUserDetails.getPoliceStationId() != null) {
-            user.setPoliceStation(policeStationRepository.findById(updatedUserDetails.getPoliceStationId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Police station does not exist with id " + updatedUserDetails.getPoliceStationId())));
+        if (updatedUserDetails.getRoleId() != null) {
+            Role role = roleRepository.findById(updatedUserDetails.getRoleId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Role does not exist with id " + updatedUserDetails.getRoleId()));
+            user.setRole(role);
+        }
+
+        Long effectiveRoleId = user.getRole() != null ? user.getRole().getRoleId() : null;
+
+        if (Long.valueOf(4L).equals(effectiveRoleId)) {
+            if (updatedUserDetails.getSubdivisionId() != null) {
+                Subdivision subdivision = subdivisionRepository.findById(updatedUserDetails.getSubdivisionId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Subdivision does not exist with id " + updatedUserDetails.getSubdivisionId()));
+                user.setSubdivision(subdivision);
+            } else {
+                user.setSubdivision(null);
+            }
+            user.setPoliceStation(null);
+        } else if (Long.valueOf(5L).equals(effectiveRoleId)) {
+            if (updatedUserDetails.getPoliceStationId() != null) {
+                var policeStation = policeStationRepository.findById(updatedUserDetails.getPoliceStationId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Police station does not exist with id " + updatedUserDetails.getPoliceStationId()));
+                user.setPoliceStation(policeStation);
+                user.setSubdivision(policeStation.getSubdivision());
+            } else {
+                user.setPoliceStation(null);
+                user.setSubdivision(null);
+            }
         } else {
             user.setPoliceStation(null);
+            user.setSubdivision(null);
         }
 
         // Only update password if given

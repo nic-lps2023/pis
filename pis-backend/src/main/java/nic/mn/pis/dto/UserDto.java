@@ -29,6 +29,12 @@ public class UserDto {
     private Long policeStationId;
     private String policeStationName;
 
+    private Long subdivisionId;
+    private String subdivisionName;
+
+    private Long districtId;
+    private String districtName;
+
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private LocalDateTime createdAt;
 

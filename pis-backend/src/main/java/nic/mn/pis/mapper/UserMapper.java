@@ -2,6 +2,7 @@ package nic.mn.pis.mapper;
 
 import nic.mn.pis.dto.UserDto;
 import nic.mn.pis.entity.Role;
+import nic.mn.pis.entity.Subdivision;
 import nic.mn.pis.entity.User;
 
 public class UserMapper {
@@ -31,6 +32,26 @@ public class UserMapper {
         if (user.getPoliceStation() != null) {
             userDto.setPoliceStationId(user.getPoliceStation().getPoliceStationId());
             userDto.setPoliceStationName(user.getPoliceStation().getPoliceStationName());
+
+            if (user.getPoliceStation().getSubdivision() != null) {
+                userDto.setSubdivisionId(user.getPoliceStation().getSubdivision().getSubdivisionId());
+                userDto.setSubdivisionName(user.getPoliceStation().getSubdivision().getSubdivisionName());
+
+                if (user.getPoliceStation().getSubdivision().getDistrict() != null) {
+                    userDto.setDistrictId(user.getPoliceStation().getSubdivision().getDistrict().getDistrictId());
+                    userDto.setDistrictName(user.getPoliceStation().getSubdivision().getDistrict().getDistrictName());
+                }
+            }
+        }
+
+        if (user.getSubdivision() != null) {
+            userDto.setSubdivisionId(user.getSubdivision().getSubdivisionId());
+            userDto.setSubdivisionName(user.getSubdivision().getSubdivisionName());
+
+            if (user.getSubdivision().getDistrict() != null) {
+                userDto.setDistrictId(user.getSubdivision().getDistrict().getDistrictId());
+                userDto.setDistrictName(user.getSubdivision().getDistrict().getDistrictName());
+            }
         }
 
         return userDto;
@@ -64,6 +85,12 @@ public class UserMapper {
             nic.mn.pis.entity.PoliceStation policeStation = new nic.mn.pis.entity.PoliceStation();
             policeStation.setPoliceStationId(userDto.getPoliceStationId());
             user.setPoliceStation(policeStation);
+        }
+
+        if (userDto.getSubdivisionId() != null) {
+            Subdivision subdivision = new Subdivision();
+            subdivision.setSubdivisionId(userDto.getSubdivisionId());
+            user.setSubdivision(subdivision);
         }
 
         return user;

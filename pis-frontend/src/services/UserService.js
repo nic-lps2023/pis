@@ -1,7 +1,7 @@
 import axios from "./axiosConfig";
 
-const REST_API_BASE_URL = "http://localhost:8080/api/users";
-const ROLE_API_BASE_URL = "http://localhost:8080/api/roles";
+const REST_API_BASE_URL = "/api/users";
+const ROLE_API_BASE_URL = "/api/roles";
 
 export const listUsers = () => axios.get(REST_API_BASE_URL);
 

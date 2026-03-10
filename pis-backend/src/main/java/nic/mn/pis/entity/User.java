@@ -64,4 +64,8 @@ public class User {
     @ManyToOne
     @JoinColumn(name = "police_station_id")
     private PoliceStation policeStation;
+
+    @ManyToOne
+    @JoinColumn(name = "subdivision_id")
+    private Subdivision subdivision;
 }
