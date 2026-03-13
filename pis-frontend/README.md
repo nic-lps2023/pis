@@ -1,12 +1,38 @@
-# React + Vite
+# PIS Frontend (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend application for Permit Issuance System.
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+## Key Functional Notes
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. Permit Application Upload Limit
+- Permit upload field accepts PDF only.
+- Maximum allowed file size: **300 KB**.
+- Validation is shown inline on Permit Application Form.
+
+### 2. Logout Confirmation Dialog
+When user clicks Logout in header, a confirmation modal appears:
+
+- Title (bold): **Permit Issuance System**
+- Message: `Are you sure you want to logout from this session?`
+- Buttons: `Cancel` and `Logout`
+- UX behavior:
+  - `Cancel` closes modal
+  - `Logout` clears session and redirects to login
+  - `Esc` key closes modal
+  - Clicking outside modal closes modal
+
+### 3. Role-Based Authority Dashboards
+Authority dashboard tabs and actions are role-specific. SDPO and OC outcome tabs (Approved/Rejected) now use jurisdiction-filtered backend APIs.
+
+## Build
+
+```bash
+npm run build
+```

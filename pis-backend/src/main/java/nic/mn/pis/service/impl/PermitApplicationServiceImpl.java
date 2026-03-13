@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -42,6 +43,7 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
 
         PermitApplication application = PermitApplicationMapper.mapToEntity(dto);
         application.setUser(user);
+        application.setSubmissionDate(LocalDateTime.now());
         applyLocationAndAssignment(application, dto);
         application.setStatus("SUBMITTED");
         application.setCurrentStage("DC_PENDING");
@@ -83,6 +85,7 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
 
         PermitApplication application = PermitApplicationMapper.mapToEntity(dto);
         application.setUser(user);
+        application.setSubmissionDate(LocalDateTime.now());
         applyLocationAndAssignment(application, dto);
         application.setStatus("SUBMITTED");
         application.setCurrentStage("DC_PENDING");
@@ -214,9 +217,7 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
     private void autoAssignOc(PermitApplication application, Long policeStationId) {
         User assignedOc = userRepository
                 .findFirstByRole_RoleIdAndPoliceStation_PoliceStationIdAndIsActiveTrue(OC_ROLE_ID, policeStationId)
-                .orElseGet(() -> userRepository
-                        .findFirstByRole_RoleIdAndIsActiveTrue(OC_ROLE_ID)
-                        .orElse(null));
+            .orElse(null);
 
         application.setAssignedOc(assignedOc);
 

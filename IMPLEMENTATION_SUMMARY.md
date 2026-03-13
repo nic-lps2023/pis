@@ -307,3 +307,19 @@ The permit application system is now fully implemented with:
 - ✅ Detailed documentation for setup and testing
 
 The system is ready for development testing and deployment to production.
+
+---
+
+## March 2026 Incremental Changes
+
+### Backend
+- Added endpoint: `GET /api/authority/applications/status/{status}`
+   - Supports: `APPROVED`, `REJECTED`, `OC_VERIFIED`
+   - Applies jurisdiction filtering for SDPO and OC using `X-Role-Id` and `X-User-Id` headers.
+- Added repository queries for status-based filtering by subdivision/police station/assigned OC.
+- Enforced permit upload size limit in file storage service: **300 KB max** for PDF uploads.
+
+### Frontend
+- Updated SDPO and OC dashboards to load outcome tabs from authority status endpoint (jurisdiction-wise), replacing global-all-applications filtering.
+- Permit Application Form enforces PDF size <= 300 KB with inline validation.
+- Header logout now shows confirmation dialog with `Cancel` and `Logout`, and supports Esc and backdrop-close behavior.

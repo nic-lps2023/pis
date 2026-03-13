@@ -9,6 +9,7 @@ public class PermitApplicationMapper {
 
         PermitApplicationDto dto = new PermitApplicationDto();
         dto.setApplicationId(app.getApplicationId());
+        dto.setSubmissionDate(app.getSubmissionDate());
         dto.setEventTitle(app.getEventTitle());
         dto.setPurpose(app.getPurpose());
         dto.setStartDateTime(app.getStartDateTime());
@@ -80,6 +81,7 @@ public class PermitApplicationMapper {
 
         PermitApplication app = new PermitApplication();
         app.setApplicationId(dto.getApplicationId());
+        app.setSubmissionDate(dto.getSubmissionDate());
         app.setEventTitle(dto.getEventTitle());
         app.setPurpose(dto.getPurpose());
         app.setStartDateTime(dto.getStartDateTime());

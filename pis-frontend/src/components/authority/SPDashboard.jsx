@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { getInboxByStage, forwardToSDPO, recommendToDC, downloadDocument } from "../../services/AuthorityService";
+import { getAllApplications } from "../../services/PermitApplicationService";
 import { useNavigate } from "react-router-dom";
 
 const SPDashboard = () => {
-  const [applications, setApplications] = useState([]);
+  const [applications, setApplications] = useState({
+    pending: [],
+    review: [],
+    approved: [],
+    rejected: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -19,6 +25,11 @@ const SPDashboard = () => {
     [app.venueName, app.locality, app.pincode].filter(Boolean).join(", ") ||
     "N/A";
 
+  const byStatus = (list, status) =>
+    (list || []).filter(
+      (item) => (item.status || "").toUpperCase() === status.toUpperCase()
+    );
+
   useEffect(() => {
     loadApplications();
   }, []);
@@ -31,13 +42,17 @@ const SPDashboard = () => {
     Promise.all([
       getInboxByStage("SP_PENDING"),
       getInboxByStage("SP_REVIEW_PENDING"),
+      getAllApplications(),
     ])
-      .then(([res1, res2]) => {
+      .then(([res1, res2, allRes]) => {
         console.log("SP_PENDING:", res1.data);
         console.log("SP_REVIEW_PENDING:", res2.data);
+        const allApplications = allRes.data || [];
         setApplications({
           pending: res1.data || [],
           review: res2.data || [],
+          approved: byStatus(allApplications, "APPROVED"),
+          rejected: byStatus(allApplications, "REJECTED"),
         });
         setLoading(false);
       })
@@ -156,7 +171,7 @@ const SPDashboard = () => {
 
   if (loading) return <p className="text-center mt-4">Loading...</p>;
 
-  const currentList = activeTab === "pending" ? applications.pending || [] : applications.review || [];
+  const currentList = applications[activeTab] || [];
 
   return (
     <div className="container mt-4">
@@ -181,6 +196,22 @@ const SPDashboard = () => {
             onClick={() => setActiveTab("review")}
           >
             🔍 For Review ({applications.review?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "approved" ? "active" : ""}`}
+            onClick={() => setActiveTab("approved")}
+          >
+            ✅ Approved Applications ({applications.approved?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "rejected" ? "active" : ""}`}
+            onClick={() => setActiveTab("rejected")}
+          >
+            ❌ Rejected Applications ({applications.rejected?.length || 0})
           </button>
         </li>
       </ul>

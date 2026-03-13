@@ -16,6 +16,17 @@ export const getInboxByStage = (stage) =>
   });
 
 /**
+ * Get approved/rejected applications filtered by logged-in authority jurisdiction
+ */
+export const getAuthorityApplicationsByStatus = (status) =>
+  axios.get(`${AUTHORITY_API_BASE_URL}/applications/status/${status}`, {
+    headers: {
+      "X-Role-Id": localStorage.getItem("roleId") || "",
+      "X-User-Id": localStorage.getItem("userId") || "",
+    },
+  });
+
+/**
  * Get application by ID
  */
 export const getApplicationById = (id) =>

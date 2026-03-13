@@ -34,6 +34,33 @@ const AuthorityApplicationDetails = () => {
       .join(", ") ||
     "N/A";
 
+  const formatDateTime = (value) => {
+    if (!value) return "N/A";
+
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) return value;
+
+    const day = String(parsedDate.getDate()).padStart(2, "0");
+    const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+    const year = parsedDate.getFullYear();
+
+    let hours = parsedDate.getHours();
+    const minutes = String(parsedDate.getMinutes()).padStart(2, "0");
+    const period = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+
+    return `${day}/${month}/${year}, ${String(hours).padStart(2, "0")}:${minutes} ${period}`;
+  };
+
+  const getApplicationDate = (application) =>
+    application?.submissionDate ||
+    application?.applicationDate ||
+    application?.createdAt ||
+    application?.createdDate ||
+    application?.submittedAt ||
+    application?.submissionDate ||
+    null;
+
   const roleName = localStorage.getItem("roleName");
 
   const getRoleDashboardPath = () => {
@@ -41,8 +68,8 @@ const AuthorityApplicationDetails = () => {
     if (roleId === "2") return "/authority/dc-dashboard";
     if (roleId === "3") return "/authority/sp-dashboard";
     if (roleId === "4") return "/authority/sdpo-dashboard";
-    if (roleId === "5") return "/authority-dashboard";
-    return "/authority/inbox";
+    if (roleId === "5") return "/authority/oc-dashboard";
+    return "/authority-dashboard";
   };
 
   const handleBack = () => {
@@ -319,7 +346,7 @@ const AuthorityApplicationDetails = () => {
         alert("Application approved! Permit generated successfully!");
         setRemarks("");
         refreshDetails();
-        setTimeout(() => navigate("/authority/inbox"), 2000);
+        setTimeout(() => navigate(getRoleDashboardPath()), 2000);
       })
       .catch((err) => {
         console.error("Error approving application:", err);
@@ -343,7 +370,7 @@ const AuthorityApplicationDetails = () => {
         alert("Application rejected successfully!");
         setRemarks("");
         refreshDetails();
-        setTimeout(() => navigate("/authority/inbox"), 2000);
+        setTimeout(() => navigate(getRoleDashboardPath()), 2000);
       })
       .catch((err) => {
         console.error("Error rejecting application:", err);
@@ -370,6 +397,7 @@ const AuthorityApplicationDetails = () => {
         <div className="row mb-4">
           <div className="col-md-6">
             <p><b>Application ID:</b> {app.applicationId}</p>
+            <p><b>Application Date:</b> {formatDateTime(getApplicationDate(app))}</p>
             <p><b>Event Title:</b> {app.eventTitle}</p>
             <p><b>Permit Type:</b> {app.permitType}</p>
             <p><b>Location:</b> {getLocationText(app)}</p>
@@ -406,14 +434,14 @@ const AuthorityApplicationDetails = () => {
           </div>
           <div className="col-md-6">
             <label><b>Start DateTime:</b></label>
-            <p className="mt-2 p-2 bg-light">{app.startDateTime}</p>
+            <p className="mt-2 p-2 bg-light">{formatDateTime(app.startDateTime)}</p>
           </div>
         </div>
 
         <div className="row mb-3">
           <div className="col-md-6">
             <label><b>End DateTime:</b></label>
-            <p className="mt-2 p-2 bg-light">{app.endDateTime}</p>
+            <p className="mt-2 p-2 bg-light">{formatDateTime(app.endDateTime)}</p>
           </div>
         </div>
 

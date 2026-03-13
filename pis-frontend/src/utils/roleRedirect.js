@@ -22,6 +22,8 @@ export const getRedirectPathByRole = (roleId) => {
     return "/authority/sp-dashboard";
   } else if (roleId.toString() === "4") {
     return "/authority/sdpo-dashboard";
+  } else if (roleId.toString() === "5") {
+    return "/authority/oc-dashboard";
   } else if (authorityRoles.includes(roleId.toString())) {
     return "/authority-dashboard";
   } else if (roleId.toString() === applicantRole) {

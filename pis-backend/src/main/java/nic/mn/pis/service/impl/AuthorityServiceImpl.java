@@ -5,10 +5,12 @@ import nic.mn.pis.dto.AuthorityActionHistoryDto;
 import nic.mn.pis.dto.PermitApplicationDto;
 import nic.mn.pis.entity.AuthorityActionHistory;
 import nic.mn.pis.entity.PermitApplication;
+import nic.mn.pis.entity.User;
 import nic.mn.pis.exception.ResourceNotFoundException;
 import nic.mn.pis.mapper.PermitApplicationMapper;
 import nic.mn.pis.repository.AuthorityActionHistoryRepository;
 import nic.mn.pis.repository.PermitApplicationRepository;
+import nic.mn.pis.repository.UserRepository;
 import nic.mn.pis.service.AuthorityService;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -24,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -39,7 +42,8 @@ public class AuthorityServiceImpl implements AuthorityService {
     private static final String PERMIT_DIR = "uploads/permits";
 
     private PermitApplicationRepository permitApplicationRepository;
-        private AuthorityActionHistoryRepository authorityActionHistoryRepository;
+    private AuthorityActionHistoryRepository authorityActionHistoryRepository;
+    private UserRepository userRepository;
 
         @Override
         public List<AuthorityActionHistoryDto> getActionHistory(Long applicationId) {
@@ -65,10 +69,71 @@ public class AuthorityServiceImpl implements AuthorityService {
     public List<PermitApplicationDto> getInboxByStage(String stage, String roleId, Long userId) {
         List<PermitApplication> applications;
 
-        if ("5".equals(roleId) && "OC_PENDING".equalsIgnoreCase(stage) && userId != null) {
+        if ("4".equals(roleId)
+                && ("SDPO_PENDING".equalsIgnoreCase(stage) || "SDPO_REVIEW_PENDING".equalsIgnoreCase(stage))) {
+            if (userId == null) {
+                return Collections.emptyList();
+            }
+
+            User sdpoUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            if (sdpoUser.getSubdivision() == null || sdpoUser.getSubdivision().getSubdivisionId() == null) {
+                return Collections.emptyList();
+            }
+
+            applications = permitApplicationRepository
+                    .findByCurrentStageAndPoliceStation_Subdivision_SubdivisionId(
+                            stage,
+                            sdpoUser.getSubdivision().getSubdivisionId());
+        } else if ("5".equals(roleId) && "OC_PENDING".equalsIgnoreCase(stage) && userId != null) {
             applications = permitApplicationRepository.findByCurrentStageAndAssignedOc_UserId(stage, userId);
         } else {
             applications = permitApplicationRepository.findByCurrentStage(stage);
+        }
+
+        return applications
+                .stream()
+                .map(PermitApplicationMapper::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<PermitApplicationDto> getOutcomeApplicationsByStatus(String status, String roleId, Long userId) {
+        List<PermitApplication> applications;
+
+        if ("4".equals(roleId)) {
+            if (userId == null) {
+                return Collections.emptyList();
+            }
+
+            User sdpoUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            if (sdpoUser.getSubdivision() == null || sdpoUser.getSubdivision().getSubdivisionId() == null) {
+                return Collections.emptyList();
+            }
+
+            applications = permitApplicationRepository.findByStatusAndPoliceStation_Subdivision_SubdivisionId(
+                    status,
+                    sdpoUser.getSubdivision().getSubdivisionId());
+        } else if ("5".equals(roleId)) {
+            if (userId == null) {
+                return Collections.emptyList();
+            }
+
+            User ocUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            if (ocUser.getPoliceStation() != null && ocUser.getPoliceStation().getPoliceStationId() != null) {
+                applications = permitApplicationRepository.findByStatusAndPoliceStation_PoliceStationId(
+                        status,
+                        ocUser.getPoliceStation().getPoliceStationId());
+            } else {
+                applications = permitApplicationRepository.findByStatusAndAssignedOc_UserId(status, userId);
+            }
+        } else {
+            applications = permitApplicationRepository.findByStatus(status);
         }
 
         return applications
@@ -134,6 +199,21 @@ public class AuthorityServiceImpl implements AuthorityService {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
+
+        if (app.getAssignedOc() == null) {
+            throw new ResourceNotFoundException(
+                "No OC is mapped to this application's police station. Please assign an OC for this jurisdiction first.");
+        }
+
+        if (app.getPoliceStation() == null
+            || app.getAssignedOc().getPoliceStation() == null
+            || app.getPoliceStation().getPoliceStationId() == null
+            || app.getAssignedOc().getPoliceStation().getPoliceStationId() == null
+            || !app.getPoliceStation().getPoliceStationId()
+                .equals(app.getAssignedOc().getPoliceStation().getPoliceStationId())) {
+            throw new ResourceNotFoundException(
+                "Assigned OC is outside the application's police station jurisdiction. Please correct OC mapping and retry.");
+        }
 
         app.setSdpoRemarks(sdpoRemarks);
         app.setCurrentStage("OC_PENDING");

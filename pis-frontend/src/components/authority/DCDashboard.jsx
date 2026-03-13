@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { getInboxByStage, downloadDocument } from "../../services/AuthorityService";
+import { getAllApplications } from "../../services/PermitApplicationService";
 import { useNavigate } from "react-router-dom";
 
 const DCDashboard = () => {
-  const [applications, setApplications] = useState({ pending: [], review: [] });
+  const [applications, setApplications] = useState({
+    pending: [],
+    review: [],
+    approved: [],
+    rejected: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("pending");
@@ -13,6 +19,11 @@ const DCDashboard = () => {
     app.fullAddress ||
     [app.venueName, app.locality, app.pincode].filter(Boolean).join(", ") ||
     "N/A";
+
+  const byStatus = (list, status) =>
+    (list || []).filter(
+      (item) => (item.status || "").toUpperCase() === status.toUpperCase()
+    );
 
   useEffect(() => {
     loadApplications();
@@ -25,13 +36,17 @@ const DCDashboard = () => {
     Promise.all([
       getInboxByStage("DC_PENDING"),
       getInboxByStage("DC_FINAL_PENDING"),
+      getAllApplications(),
     ])
-      .then(([pendingRes, reviewRes]) => {
+      .then(([pendingRes, reviewRes, allRes]) => {
         console.log("DC_PENDING:", pendingRes.data);
         console.log("DC_FINAL_PENDING:", reviewRes.data);
+        const allApplications = allRes.data || [];
         setApplications({
           pending: pendingRes.data || [],
           review: reviewRes.data || [],
+          approved: byStatus(allApplications, "APPROVED"),
+          rejected: byStatus(allApplications, "REJECTED"),
         });
         setLoading(false);
       })
@@ -63,8 +78,7 @@ const DCDashboard = () => {
       });
   };
 
-  const currentList =
-    activeTab === "pending" ? applications.pending || [] : applications.review || [];
+  const currentList = applications[activeTab] || [];
 
   if (loading) return <p className="text-center mt-4">Loading...</p>;
 
@@ -90,6 +104,22 @@ const DCDashboard = () => {
             onClick={() => setActiveTab("review")}
           >
             🔍 For Review ({applications.review?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "approved" ? "active" : ""}`}
+            onClick={() => setActiveTab("approved")}
+          >
+            ✅ Approved Applications ({applications.approved?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "rejected" ? "active" : ""}`}
+            onClick={() => setActiveTab("rejected")}
+          >
+            ❌ Rejected Applications ({applications.rejected?.length || 0})
           </button>
         </li>
       </ul>

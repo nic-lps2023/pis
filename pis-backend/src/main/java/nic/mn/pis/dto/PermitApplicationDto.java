@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 public class PermitApplicationDto {
 
     private Long applicationId;
+    private LocalDateTime submissionDate;
     private String eventTitle;
     private String purpose;
     private LocalDateTime startDateTime;

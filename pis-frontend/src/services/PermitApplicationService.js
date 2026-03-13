@@ -57,6 +57,14 @@ export const downloadGeneratedPermit = (applicationId) =>
   });
 
 /**
+ * Download applicant uploaded document
+ */
+export const downloadApplicationDocument = (applicationId) =>
+  axios.get(`${PERMIT_API_BASE_URL}/${applicationId}/download-document`, {
+    responseType: "blob",
+  });
+
+/**
  * Update application
  */
 export const updateApplication = (id, applicationDto) =>

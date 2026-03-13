@@ -1,9 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { getInboxByStage, forwardToOC, forwardToSPFromSDPO, downloadDocument } from "../../services/AuthorityService";
+import {
+  getInboxByStage,
+  forwardToOC,
+  forwardToSPFromSDPO,
+  downloadDocument,
+  getAuthorityApplicationsByStatus,
+} from "../../services/AuthorityService";
 import { useNavigate } from "react-router-dom";
 
 const SDPODashboard = () => {
-  const [applications, setApplications] = useState({ pending: [], review: [] });
+  const [applications, setApplications] = useState({
+    pending: [],
+    review: [],
+    approved: [],
+    rejected: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -27,13 +38,20 @@ const SDPODashboard = () => {
     setLoading(true);
     setError(null);
 
-    Promise.all([getInboxByStage("SDPO_PENDING"), getInboxByStage("SDPO_REVIEW_PENDING")])
-      .then(([pendingRes, reviewRes]) => {
+    Promise.all([
+      getInboxByStage("SDPO_PENDING"),
+      getInboxByStage("SDPO_REVIEW_PENDING"),
+      getAuthorityApplicationsByStatus("APPROVED"),
+      getAuthorityApplicationsByStatus("REJECTED"),
+    ])
+      .then(([pendingRes, reviewRes, approvedRes, rejectedRes]) => {
         console.log("SDPO_PENDING:", pendingRes.data);
         console.log("SDPO_REVIEW_PENDING:", reviewRes.data);
         setApplications({
           pending: pendingRes.data || [],
           review: reviewRes.data || [],
+          approved: approvedRes.data || [],
+          rejected: rejectedRes.data || [],
         });
         setLoading(false);
       })
@@ -150,7 +168,7 @@ const SDPODashboard = () => {
 
   if (loading) return <p className="text-center mt-4">Loading...</p>;
 
-  const currentList = activeTab === "pending" ? applications.pending || [] : applications.review || [];
+  const currentList = applications[activeTab] || [];
 
   return (
     <div className="container mt-4">
@@ -174,6 +192,22 @@ const SDPODashboard = () => {
             onClick={() => setActiveTab("review")}
           >
             🔍 For Review ({applications.review?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "approved" ? "active" : ""}`}
+            onClick={() => setActiveTab("approved")}
+          >
+            ✅ Approved Applications ({applications.approved?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "rejected" ? "active" : ""}`}
+            onClick={() => setActiveTab("rejected")}
+          >
+            ❌ Rejected Applications ({applications.rejected?.length || 0})
           </button>
         </li>
       </ul>

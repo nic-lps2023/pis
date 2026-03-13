@@ -1,15 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { getInboxByStage, submitOCReport, downloadDocument } from "../../services/AuthorityService";
+import {
+  getInboxByStage,
+  submitOCReport,
+  downloadDocument,
+  getAuthorityApplicationsByStatus,
+} from "../../services/AuthorityService";
 import { useNavigate } from "react-router-dom";
 
 const OCDashboard = () => {
-  const [applications, setApplications] = useState([]);
+  const [applications, setApplications] = useState({
+    pending: [],
+    completed: [],
+    approved: [],
+    rejected: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState(null);
   const [reportText, setReportText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("pending");
   const navigate = useNavigate();
 
   const getLocationText = (app) =>
@@ -25,10 +36,21 @@ const OCDashboard = () => {
     setLoading(true);
     setError(null);
 
-    getInboxByStage("OC_PENDING")
-      .then((res) => {
-        console.log("OC_PENDING applications:", res.data);
-        setApplications(res.data || []);
+    Promise.all([
+      getInboxByStage("OC_PENDING"),
+      getAuthorityApplicationsByStatus("OC_VERIFIED"),
+      getAuthorityApplicationsByStatus("APPROVED"),
+      getAuthorityApplicationsByStatus("REJECTED"),
+    ])
+      .then(([pendingRes, completedRes, approvedRes, rejectedRes]) => {
+        console.log("OC_PENDING applications:", pendingRes.data);
+
+        setApplications({
+          pending: pendingRes.data || [],
+          completed: completedRes.data || [],
+          approved: approvedRes.data || [],
+          rejected: rejectedRes.data || [],
+        });
         setLoading(false);
       })
       .catch((err) => {
@@ -113,6 +135,8 @@ const OCDashboard = () => {
 
   if (loading) return <p className="text-center mt-4">Loading...</p>;
 
+  const currentList = applications[activeTab] || [];
+
   return (
     <div className="container mt-4">
       <h2 className="text-center">
@@ -124,18 +148,55 @@ const OCDashboard = () => {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {applications.length === 0 && !error && (
+      <ul className="nav nav-tabs mt-4" role="tablist">
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "pending" ? "active" : ""}`}
+            onClick={() => setActiveTab("pending")}
+          >
+            📋 Pending ({applications.pending?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "completed" ? "active" : ""}`}
+            onClick={() => setActiveTab("completed")}
+          >
+            📝 Investigation Completed ({applications.completed?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "approved" ? "active" : ""}`}
+            onClick={() => setActiveTab("approved")}
+          >
+            ✅ Approved Applications ({applications.approved?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "rejected" ? "active" : ""}`}
+            onClick={() => setActiveTab("rejected")}
+          >
+            ❌ Rejected Applications ({applications.rejected?.length || 0})
+          </button>
+        </li>
+      </ul>
+
+      {currentList.length === 0 && !error && (
         <p className="text-center mt-4 text-muted">
-          No applications pending for verification
+          No applications to display
         </p>
       )}
 
-      {applications.length > 0 && (
+      {currentList.length > 0 && (
         <div>
-          <div className="alert alert-info">
-            <strong>📋 Pending Verifications:</strong> {applications.length}{" "}
-            applications awaiting your physical verification and report.
-          </div>
+          {activeTab === "pending" && (
+            <div className="alert alert-info">
+              <strong>📋 Pending Verifications:</strong> {applications.pending?.length || 0}{" "}
+              applications awaiting your physical verification and report.
+            </div>
+          )}
 
           <table className="table table-bordered table-striped mt-3">
             <thead>
@@ -152,7 +213,7 @@ const OCDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {applications.map((app) => (
+              {currentList.map((app) => (
                 <tr key={app.applicationId}>
                   <td>
                     <strong>#{app.applicationId}</strong>
@@ -175,7 +236,11 @@ const OCDashboard = () => {
                   </td>
                   <td>{getLocationText(app)}</td>
                   <td>
-                    <small>{app.purpose?.substring(0, 50)}...</small>
+                    <small>
+                      {app.purpose
+                        ? `${app.purpose.substring(0, 50)}${app.purpose.length > 50 ? "..." : ""}`
+                        : "N/A"}
+                    </small>
                   </td>
                   <td>
                     {app.documentFileName ? (
@@ -200,19 +265,23 @@ const OCDashboard = () => {
                       <button
                         className="btn btn-info"
                         onClick={() =>
-                          navigate(`/authority/application/${app.applicationId}`)
+                          navigate(`/authority/application/${app.applicationId}`, {
+                            state: { from: "/authority/oc-dashboard", tab: activeTab },
+                          })
                         }
                         title="View full details and applicant information"
                       >
                         Details
                       </button>
-                      <button
-                        className="btn btn-success"
-                        onClick={() => openReportModal(app.applicationId)}
-                        title="Submit verification report"
-                      >
-                        Report ✓
-                      </button>
+                      {activeTab === "pending" && (
+                        <button
+                          className="btn btn-success"
+                          onClick={() => openReportModal(app.applicationId)}
+                          title="Submit verification report"
+                        >
+                          Report ✓
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

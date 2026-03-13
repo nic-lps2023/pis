@@ -405,13 +405,17 @@ const UserComponent = () => {
           <div className="card-body">
             {!isEditMode && registrationSuccess && (
               <div className="alert alert-success" role="alert">
-                Registration successful. <Link to="/login">Click to Login</Link>
+                <p className="mb-1">Congratulations, your account has been sucessfully created.</p>
+                <p className="mb-0"><Link to="/login">Click here to Login/Continue</Link></p>
               </div>
             )}
 
+            {(isEditMode || !registrationSuccess) && (
             <form>
               <div className="form-group mb-2">
-                <label className="form-label">Full Name</label>
+                <label className="form-label">
+                  Full Name <span className="text-danger">*</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Enter Full Name"
@@ -429,7 +433,9 @@ const UserComponent = () => {
 
               {!isEditMode && (
                 <div className="form-group mb-2">
-                  <label className="form-label">Password</label>
+                  <label className="form-label">
+                    Password <span className="text-danger">*</span>
+                  </label>
                   <input
                     type="password"
                     placeholder="Enter password"
@@ -448,7 +454,9 @@ const UserComponent = () => {
 
               {!isEditMode && (
                 <div className="form-group mb-2">
-                  <label className="form-label">Confirm Password</label>
+                  <label className="form-label">
+                    Confirm Password <span className="text-danger">*</span>
+                  </label>
                   <input
                     type="password"
                     placeholder="Re-enter password"
@@ -532,7 +540,9 @@ const UserComponent = () => {
               )}
 
               <div className="form-group mb-2">
-                <label className="form-label">Email</label>
+                <label className="form-label">
+                  Email <span className="text-danger">*</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Enter email"
@@ -551,7 +561,9 @@ const UserComponent = () => {
               </div>
 
               <div className="form-group mb-2">
-                <label className="form-label">Phone Number</label>
+                <label className="form-label">
+                  Phone Number <span className="text-danger">*</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Enter Phone Number"
@@ -570,7 +582,9 @@ const UserComponent = () => {
               </div>
 
               <div className="form-group mb-2">
-                <label className="form-check-label">Select Gender</label>
+                <label className="form-check-label">
+                  Select Gender <span className="text-danger">*</span>
+                </label>
 
                 <div>
                   <label style={{ marginLeft: "10px" }}>
@@ -613,7 +627,9 @@ const UserComponent = () => {
               </div>
 
               <div className="form-group mb-2">
-                <label className="form-label">Address</label>
+                <label className="form-label">
+                  Address <span className="text-danger">*</span>
+                </label>
                 <input
                   type="text"
                   placeholder="Enter Address"
@@ -816,6 +832,7 @@ const UserComponent = () => {
                 {isEditMode && isAdmin ? "Back to Users" : "Back to Login"}
               </button>
             </form>
+            )}
           </div>
         </div>
       </div>

@@ -26,6 +26,18 @@ public interface AuthorityService {
     List<PermitApplicationDto> getInboxByStage(String stage, String roleId, Long userId);
 
     /**
+     * Retrieve completed outcome applications (APPROVED/REJECTED) filtered by authority jurisdiction.
+     * SDPO users receive applications from their subdivision, OC users from their police station,
+     * and other roles receive all applications for the requested status.
+     *
+     * @param status outcome status (APPROVED or REJECTED)
+     * @param roleId authority role id from request header
+     * @param userId logged in user id from request header
+     * @return list of applications matching role-specific jurisdiction filter
+     */
+    List<PermitApplicationDto> getOutcomeApplicationsByStatus(String status, String roleId, Long userId);
+
+    /**
      * Deputy Commissioner forwards application to State Police (SP)
      * Transitions from DC_PENDING to SP_PENDING
      * @param applicationId the application ID

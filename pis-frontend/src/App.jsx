@@ -11,7 +11,6 @@ import SPDashboard from "./components/authority/SPDashboard";
 import SDPODashboard from "./components/authority/SDPODashboard";
 import OCDashboard from "./components/authority/OCDashboard";
 import DCDashboard from "./components/authority/DCDashboard";
-import AuthorityInbox from "./components/authority/AuthorityInbox";
 import AuthorityApplicationDetails from "./components/authority/AuthorityApplicationDetails";
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -106,14 +105,16 @@ function App() {
             }
           />
 
+          {/* OC Dashboard - Role 5 */}
           <Route
-            path="/authority/inbox"
+            path="/authority/oc-dashboard"
             element={
-              <PrivateRoute allowedRoles={[2, 3, 4, 5, 6]}>
-                <AuthorityInbox />
+              <PrivateRoute allowedRoles={[5]}>
+                <OCDashboard />
               </PrivateRoute>
             }
           />
+
           <Route
             path="/authority/application/:id"
             element={

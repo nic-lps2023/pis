@@ -263,3 +263,32 @@ AuthorityActionRequest {
 - **React Version**: Existing version maintained
 - **Node.js Compatible**: Yes
 
+---
+
+## March 2026 Incremental Updates
+
+### 1. Jurisdiction-wise Approved/Rejected for SDPO and OC
+
+- Added status-based authority API consumption in dashboards:
+   - `getAuthorityApplicationsByStatus("APPROVED")`
+   - `getAuthorityApplicationsByStatus("REJECTED")`
+   - OC also loads `getAuthorityApplicationsByStatus("OC_VERIFIED")` for completed investigations
+- SDPO and OC no longer rely on global `getAllApplications()` for outcome tabs.
+
+### 2. Permit Upload Size Limit
+
+- Permit Application Form now enforces **PDF <= 300 KB**.
+- Inline validation message: `PDF size must be 300 KB or less`.
+
+### 3. Logout Confirmation Modal
+
+- Added confirmation popup on header Logout action.
+- Content:
+   - **Permit Issuance System**
+   - `Are you sure you want to logout from this session?`
+   - `Cancel` and `Logout` buttons
+- Modal can be dismissed by:
+   - Cancel button
+   - Escape key
+   - Clicking outside modal
+

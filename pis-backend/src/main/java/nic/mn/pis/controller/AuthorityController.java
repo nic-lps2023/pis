@@ -60,6 +60,28 @@ public class AuthorityController {
     }
 
     /**
+     * Get completed applications by final status with role-based jurisdiction filtering.
+        * Supported statuses: APPROVED, REJECTED, OC_VERIFIED.
+     */
+    @GetMapping("/applications/status/{status}")
+    public ResponseEntity<List<PermitApplicationDto>> getApplicationsByStatus(
+            @PathVariable String status,
+            @RequestHeader(value = "X-Role-Id", required = false) String roleId,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+
+        String normalizedStatus = status == null ? "" : status.trim().toUpperCase();
+        if (!"APPROVED".equals(normalizedStatus)
+            && !"REJECTED".equals(normalizedStatus)
+            && !"OC_VERIFIED".equals(normalizedStatus)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                "Only APPROVED, REJECTED and OC_VERIFIED statuses are supported");
+        }
+
+        return ResponseEntity.ok(authorityService.getOutcomeApplicationsByStatus(normalizedStatus, roleId, userId));
+    }
+
+    /**
      * Deputy Commissioner forwards application to State Police (SP)
      * Transitions: DC_PENDING → SP_PENDING, SUBMITTED → FORWARDED_TO_SP
      */

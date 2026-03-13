@@ -9,5 +9,10 @@ public interface PermitApplicationRepository extends JpaRepository<PermitApplica
 
     List<PermitApplication> findByUser_UserId(Long userId);
     List<PermitApplication> findByCurrentStage(String stage);
+    List<PermitApplication> findByStatus(String status);
+    List<PermitApplication> findByCurrentStageAndPoliceStation_Subdivision_SubdivisionId(String stage, Long subdivisionId);
     List<PermitApplication> findByCurrentStageAndAssignedOc_UserId(String stage, Long userId);
+    List<PermitApplication> findByStatusAndPoliceStation_Subdivision_SubdivisionId(String status, Long subdivisionId);
+    List<PermitApplication> findByStatusAndPoliceStation_PoliceStationId(String status, Long policeStationId);
+    List<PermitApplication> findByStatusAndAssignedOc_UserId(String status, Long userId);
 }

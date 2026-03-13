@@ -2,6 +2,49 @@
 
 ## API Endpoints
 
+## March 2026 Updates
+
+### A. Authority Outcome Applications (Jurisdiction-wise)
+
+**Endpoint**: `GET /api/authority/applications/status/{status}`
+
+**Purpose**: Returns status-based applications with role-based jurisdiction filtering.
+
+**Supported Path Values**:
+- `APPROVED`
+- `REJECTED`
+- `OC_VERIFIED`
+
+**Required Headers**:
+- `X-Role-Id`
+- `X-User-Id`
+
+**Filtering Rules**:
+- SDPO (`roleId=4`): filtered by logged-in SDPO subdivision
+- OC (`roleId=5`): filtered by logged-in OC police station (fallback: assigned OC mapping)
+- Other authority roles: returns all applications for requested status
+
+**Example Request**:
+```bash
+curl -X GET "http://localhost:8080/api/authority/applications/status/APPROVED" \
+  -H "X-Role-Id: 4" \
+  -H "X-User-Id: 101"
+```
+
+**Error Response**:
+- `400 Bad Request` for unsupported status values
+
+### B. Upload Size Enforcement
+
+For `POST /api/permit-applications/with-pdf`, uploaded PDF size is now limited to **300 KB**.
+
+**Validation location**:
+- Frontend form validation
+- Backend `FileStorageServiceImpl` server-side enforcement
+
+**Rejected message**:
+- `PDF size must be 300 KB or less`
+
 ### 1. Create Permit Application with PDF Upload
 
 **Endpoint**: `POST /api/permit-applications/with-pdf`
@@ -343,7 +386,7 @@ file.upload-dir=/var/uploads/permit-applications/
 1. **File Validation**: Only PDF files are accepted
 2. **Unique Filenames**: UUID prefix prevents name collisions
 3. **Path Traversal Protection**: Files stored in dedicated `uploads/` directory
-4. **File Size Limits**: Configured via `spring.servlet.multipart.max-file-size`
+4. **File Size Limits**: Application-level validation enforces PDF <= 300 KB for permit upload
 5. **CORS Enabled**: `@CrossOrigin("*")` on controller
 
 ---

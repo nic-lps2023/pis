@@ -18,6 +18,8 @@ import java.util.UUID;
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
 
+    private static final long MAX_PDF_FILE_SIZE_BYTES = 300L * 1024L;
+
     @Value("${file.upload-dir:uploads/}")
     private String uploadDir;
 
@@ -37,6 +39,10 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         if (!isPdfFile(file)) {
             throw new IllegalArgumentException("File must be a PDF. Provided file type: " + file.getContentType());
+        }
+
+        if (file.getSize() > MAX_PDF_FILE_SIZE_BYTES) {
+            throw new IllegalArgumentException("PDF size must be 300 KB or less");
         }
 
         // Create uploads directory if it doesn't exist

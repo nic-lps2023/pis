@@ -1,5 +1,16 @@
 # Documentation Index
 
+## March 2026 Latest Updates
+
+1. **Authority outcome visibility is now jurisdiction-wise for SDPO and OC**
+: Approved/Rejected lists on dashboards are now fetched from `GET /api/authority/applications/status/{status}` with role/user header-based filtering.
+
+2. **Permit PDF upload limit set to 300 KB**
+: Enforced in frontend form and backend file storage service.
+
+3. **OC dashboard data alignment**
+: OC tabs now use status-based authority endpoint for `OC_VERIFIED`, `APPROVED`, and `REJECTED`.
+
 ## All Issues Fixed ✅
 
 Your document path issues have been completely resolved. Here's a comprehensive guide to all the changes and documentation created:
