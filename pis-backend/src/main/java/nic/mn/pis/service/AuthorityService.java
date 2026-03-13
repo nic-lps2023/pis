@@ -101,6 +101,13 @@ public interface AuthorityService {
     PermitApplicationDto approveByDC(Long applicationId, String dcRemarks);
 
     /**
+     * Regenerate permit PDF for an already approved application.
+     * @param applicationId the approved application ID
+     * @return updated application DTO with refreshed permit path/name
+     */
+    PermitApplicationDto regeneratePermit(Long applicationId);
+
+    /**
      * Deputy Commissioner rejects application
      * Transitions from DC_FINAL_PENDING to COMPLETED with status REJECTED
      * @param applicationId the application ID

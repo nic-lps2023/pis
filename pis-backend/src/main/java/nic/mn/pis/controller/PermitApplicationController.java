@@ -2,6 +2,7 @@ package nic.mn.pis.controller;
 
 import lombok.AllArgsConstructor;
 import nic.mn.pis.dto.PermitApplicationDto;
+import nic.mn.pis.service.AuthorityService;
 import nic.mn.pis.service.PermitApplicationService;
 // import org.apache.pdfbox.pdmodel.PDDocument;
 // import org.apache.pdfbox.pdmodel.PDPage;
@@ -35,6 +36,7 @@ import org.springframework.http.MediaType;
 public class PermitApplicationController {
 
     private PermitApplicationService permitApplicationService;
+    private AuthorityService authorityService;
 
     @PostMapping
     public ResponseEntity<PermitApplicationDto> createApplication(@RequestBody PermitApplicationDto dto) {
@@ -197,6 +199,9 @@ public class PermitApplicationController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body("Permit is available only for approved applications");
             }
+
+            // Always regenerate from latest template before download.
+            application = authorityService.regeneratePermit(applicationId);
 
 /*             if (application.getPermitPath() == null || application.getPermitPath().isBlank()) {
                 byte[] generatedPermit = buildFallbackPermitPdf(application);

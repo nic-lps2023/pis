@@ -33,6 +33,7 @@ const UserComponent = () => {
 
   const [enablePasswordChange, setEnablePasswordChange] = useState(false);
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
 
   const [roleId, setRoleId] = useState("");
   const [districtId, setDistrictId] = useState("");
@@ -230,7 +231,14 @@ const UserComponent = () => {
 
       if (id) {
         updateUser(id, user)
-          .then(() => navigator("/users"))
+          .then(() => {
+            if (isOwnProfile) {
+              setUpdateSuccess(true);
+              return;
+            }
+
+            navigator("/users");
+          })
           .catch((error) => console.error(error));
       } else {
         createUser(user)
@@ -403,6 +411,13 @@ const UserComponent = () => {
           {pageTitle()}
 
           <div className="card-body">
+            {isEditMode && updateSuccess && (
+              <div className="alert alert-success" role="alert">
+                <p className="mb-1">Updated Sucessfully</p>
+                <p className="mb-0">Please logout and login again</p>
+              </div>
+            )}
+
             {!isEditMode && registrationSuccess && (
               <div className="alert alert-success" role="alert">
                 <p className="mb-1">Congratulations, your account has been sucessfully created.</p>
@@ -410,7 +425,7 @@ const UserComponent = () => {
               </div>
             )}
 
-            {(isEditMode || !registrationSuccess) && (
+            {((isEditMode && !updateSuccess) || (!isEditMode && !registrationSuccess)) && (
             <form>
               <div className="form-group mb-2">
                 <label className="form-label">
