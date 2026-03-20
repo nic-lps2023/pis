@@ -19,6 +19,8 @@ import java.util.UUID;
 public class FileStorageServiceImpl implements FileStorageService {
 
     private static final long MAX_PDF_FILE_SIZE_BYTES = 300L * 1024L;
+    private static final long MAX_OC_REPORT_PDF_SIZE_BYTES = 5L * 1024L * 1024L;
+    private static final String OC_REPORT_SUBDIR = "oc-reports/";
 
     @Value("${file.upload-dir:uploads/}")
     private String uploadDir;
@@ -65,6 +67,39 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         // Return the path and filename for storage in database
         return uploadDir + uniqueFileName;
+    }
+
+    /**
+     * Store an OC investigation report PDF in uploads/oc-reports/ (max 5 MB)
+     */
+    @Override
+    public String storeOCReportPdf(MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File cannot be empty");
+        }
+        if (!isPdfFile(file)) {
+            throw new IllegalArgumentException("File must be a PDF. Provided file type: " + file.getContentType());
+        }
+        if (file.getSize() > MAX_OC_REPORT_PDF_SIZE_BYTES) {
+            throw new IllegalArgumentException("OC report PDF size must be 5 MB or less");
+        }
+
+        Path ocReportDir = Paths.get(uploadDir + OC_REPORT_SUBDIR);
+        if (!Files.exists(ocReportDir)) {
+            Files.createDirectories(ocReportDir);
+        }
+
+        String originalFileName = file.getOriginalFilename();
+        String uniqueFileName = UUID.randomUUID() + "_" + originalFileName;
+        Path filePath = ocReportDir.resolve(uniqueFileName);
+
+        try {
+            Files.copy(file.getInputStream(), filePath);
+        } catch (IOException e) {
+            throw new IOException("Failed to store OC report PDF: " + e.getMessage(), e);
+        }
+
+        return uploadDir + OC_REPORT_SUBDIR + uniqueFileName;
     }
 
     /**

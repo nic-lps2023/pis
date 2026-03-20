@@ -54,10 +54,19 @@ export const forwardToOC = (id, remarks) =>
   axios.put(`${AUTHORITY_API_BASE_URL}/sdpo/forward-oc/${id}`, { remarks });
 
 /**
- * OC submit report
+ * OC submit investigation report (short summary + optional PDF)
+ * Sends multipart/form-data to POST /api/authority/oc/report/{id}
  */
-export const submitOCReport = (id, report) =>
-  axios.put(`${AUTHORITY_API_BASE_URL}/oc/report/${id}`, { report });
+export const submitOCReport = (id, summary, pdfFile) => {
+  const formData = new FormData();
+  formData.append("summary", summary);
+  if (pdfFile) {
+    formData.append("pdfFile", pdfFile);
+  }
+  return axios.post(`${AUTHORITY_API_BASE_URL}/oc/report/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
 
 /**
  * SDPO forward to SP after OC report
@@ -104,5 +113,13 @@ export const viewDocument = (applicationId) =>
  */
 export const downloadGeneratedPermit = (applicationId) =>
   axios.get(`${PERMIT_API_BASE_URL}/${applicationId}/download-permit`, {
+    responseType: "blob",
+  });
+
+/**
+ * Download OC investigation report PDF
+ */
+export const downloadOCReport = (applicationId) =>
+  axios.get(`${PERMIT_API_BASE_URL}/${applicationId}/download-oc-report`, {
     responseType: "blob",
   });

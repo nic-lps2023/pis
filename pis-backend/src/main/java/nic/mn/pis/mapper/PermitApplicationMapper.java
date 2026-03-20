@@ -32,9 +32,12 @@ public class PermitApplicationMapper {
         dto.setSpRemarks(app.getSpRemarks());
         dto.setSdpoRemarks(app.getSdpoRemarks());
         dto.setOcReport(app.getOcReport());
+        dto.setOcReportPdfPath(app.getOcReportPdfPath());
+        dto.setOcReportPdfFileName(app.getOcReportPdfFileName());
 
         if (app.getUser() != null) {
             dto.setUserId(app.getUser().getUserId());
+            dto.setApplicantFullName(app.getUser().getFullName());
         }
 
         if (app.getPoliceStation() != null) {

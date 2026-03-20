@@ -132,6 +132,55 @@ public class PermitApplicationController {
     }
 
     /**
+     * Download the OC investigation report PDF for a specific permit application
+     * @param applicationId the permit application ID
+     * @return the OC report PDF file as byte array
+     */
+    @GetMapping("/{applicationId}/download-oc-report")
+    public ResponseEntity<?> downloadOCReport(@PathVariable Long applicationId) {
+        try {
+            PermitApplicationDto application = permitApplicationService.getApplicationById(applicationId);
+
+            if (application == null || application.getOcReportPdfPath() == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("OC report PDF not found for application: " + applicationId);
+            }
+
+            String absolutePath = application.getOcReportPdfPath();
+            if (!new File(absolutePath).isAbsolute()) {
+                absolutePath = Paths.get(absolutePath).toAbsolutePath().toString();
+            }
+
+            File file = new File(absolutePath);
+            if (!file.exists()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("OC report PDF file not found at path: " + absolutePath);
+            }
+
+            InputStream inputStream = new FileInputStream(file);
+            byte[] fileContent = inputStream.readAllBytes();
+            inputStream.close();
+
+            String fileName = application.getOcReportPdfFileName() != null
+                    ? application.getOcReportPdfFileName()
+                    : "oc_report_" + applicationId + ".pdf";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentLength(fileContent.length);
+            headers.setContentDispositionFormData("inline", fileName);
+
+            return new ResponseEntity<>(fileContent, headers, HttpStatus.OK);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error downloading OC report: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
+        }
+    }
+
+    /**
      * View the PDF document for a specific permit application (inline display)
      * @param applicationId the permit application ID
      * @return the PDF file as byte array with inline content disposition

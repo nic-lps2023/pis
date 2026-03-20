@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getInboxByStage, forwardToSDPO, recommendToDC, downloadDocument } from "../../services/AuthorityService";
+import { getInboxByStage, forwardToSDPO, recommendToDC, viewDocument } from "../../services/AuthorityService";
 import { getAllApplications } from "../../services/PermitApplicationService";
 import { useNavigate } from "react-router-dom";
 
@@ -30,6 +30,22 @@ const SPDashboard = () => {
       (item) => (item.status || "").toUpperCase() === status.toUpperCase()
     );
 
+  const sortByApplicationIdDesc = (list) =>
+    [...(list || [])].sort((a, b) => {
+      const aId = Number(a?.applicationId);
+      const bId = Number(b?.applicationId);
+
+      if (Number.isNaN(aId) || Number.isNaN(bId)) {
+        return String(b?.applicationId || "").localeCompare(
+          String(a?.applicationId || ""),
+          undefined,
+          { numeric: true, sensitivity: "base" }
+        );
+      }
+
+      return bId - aId;
+    });
+
   useEffect(() => {
     loadApplications();
   }, []);
@@ -51,8 +67,8 @@ const SPDashboard = () => {
         setApplications({
           pending: res1.data || [],
           review: res2.data || [],
-          approved: byStatus(allApplications, "APPROVED"),
-          rejected: byStatus(allApplications, "REJECTED"),
+          approved: sortByApplicationIdDesc(byStatus(allApplications, "APPROVED")),
+          rejected: sortByApplicationIdDesc(byStatus(allApplications, "REJECTED")),
         });
         setLoading(false);
       })
@@ -130,22 +146,26 @@ const SPDashboard = () => {
   };
 
   /**
-   * Handle document download
+   * Handle inline document view in new tab
    */
-  const handleDownloadDocument = (applicationId, fileName) => {
-    downloadDocument(applicationId)
+  const handleViewDocument = (applicationId) => {
+    viewDocument(applicationId)
       .then((response) => {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", fileName || "document.pdf");
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
+        const contentType = response.headers?.["content-type"] || "application/pdf";
+        if (!contentType.toLowerCase().includes("pdf")) {
+          alert("Unable to open document. The server did not return a PDF file.");
+          return;
+        }
+
+        const url = window.URL.createObjectURL(
+          new Blob([response.data], { type: "application/pdf" })
+        );
+        window.open(url, "_blank", "noopener,noreferrer");
+        setTimeout(() => window.URL.revokeObjectURL(url), 2000);
       })
       .catch((err) => {
-        console.error("Error downloading document:", err);
-        alert("Failed to download document. Please try again.");
+        console.error("Error opening document:", err);
+        alert("Failed to open document. Please try again.");
       });
   };
 
@@ -253,13 +273,8 @@ const SPDashboard = () => {
                   {app.documentFileName ? (
                     <button
                       className="btn btn-sm btn-outline-secondary"
-                      onClick={() =>
-                        handleDownloadDocument(
-                          app.applicationId,
-                          app.documentFileName
-                        )
-                      }
-                      title="Download application document"
+                      onClick={() => handleViewDocument(app.applicationId)}
+                      title="Open application document in new tab"
                     >
                       📄
                     </button>

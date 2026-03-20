@@ -12,7 +12,8 @@ import {
   approveByDC,
   rejectByDC,
   downloadDocument,
-  downloadGeneratedPermit
+  downloadGeneratedPermit,
+  downloadOCReport
 } from "../../services/AuthorityService";
 
 const AuthorityApplicationDetails = () => {
@@ -26,6 +27,7 @@ const AuthorityApplicationDetails = () => {
 
   const [remarks, setRemarks] = useState("");
   const [report, setReport] = useState("");
+  const [ocReportPdfFile, setOcReportPdfFile] = useState(null);
 
   const getLocationText = (application) =>
     application?.fullAddress ||
@@ -187,6 +189,27 @@ const AuthorityApplicationDetails = () => {
   };
 
   /**
+   * Download OC investigation report PDF
+   */
+  const handleDownloadOCReport = () => {
+    if (!app?.ocReportPdfFileName) {
+      alert("No OC report PDF available.");
+      return;
+    }
+    downloadOCReport(id)
+      .then((response) => {
+        const blob = new Blob([response.data], { type: "application/pdf" });
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+      })
+      .catch((err) => {
+        console.error("Error downloading OC report:", err);
+        alert("Error downloading OC report PDF. Please try again.");
+      });
+  };
+
+  /**
    * Download generated permit PDF
    */
   const handleDownloadGeneratedPermit = () => {
@@ -278,18 +301,23 @@ const AuthorityApplicationDetails = () => {
    */
   const handleOCSubmitReport = () => {
     if (!report.trim()) {
-      alert("Please enter the investigation report!");
+      alert("Please enter the investigation summary!");
       return;
     }
-    submitOCReport(id, report)
+    if (ocReportPdfFile && ocReportPdfFile.type !== "application/pdf") {
+      alert("Only PDF files are allowed for the investigation report attachment.");
+      return;
+    }
+    submitOCReport(id, report, ocReportPdfFile || null)
       .then(() => {
         alert("Investigation report submitted successfully!");
         setReport("");
+        setOcReportPdfFile(null);
         refreshDetails();
       })
       .catch((err) => {
         console.error("Error submitting report:", err);
-        alert("Error submitting report");
+        alert(err.response?.data?.message || "Error submitting report");
       });
   };
 
@@ -397,6 +425,7 @@ const AuthorityApplicationDetails = () => {
         <div className="row mb-4">
           <div className="col-md-6">
             <p><b>Application ID:</b> {app.applicationId}</p>
+            <p><b>Applicant Full Name:</b> {app.applicantFullName || "N/A"}</p>
             <p><b>Application Date:</b> {formatDateTime(getApplicationDate(app))}</p>
             <p><b>Event Title:</b> {app.eventTitle}</p>
             <p><b>Permit Type:</b> {app.permitType}</p>
@@ -435,11 +464,6 @@ const AuthorityApplicationDetails = () => {
           <div className="col-md-6">
             <label><b>Start DateTime:</b></label>
             <p className="mt-2 p-2 bg-light">{formatDateTime(app.startDateTime)}</p>
-          </div>
-        </div>
-
-        <div className="row mb-3">
-          <div className="col-md-6">
             <label><b>End DateTime:</b></label>
             <p className="mt-2 p-2 bg-light">{formatDateTime(app.endDateTime)}</p>
           </div>
@@ -447,29 +471,41 @@ const AuthorityApplicationDetails = () => {
 
         {/* DC Remarks */}
         {app.dcRemarks && (
-          <div className="alert alert-info mt-2">
+          <div className="alert alert-primary mt-2">
             <b>DC Remarks:</b> {app.dcRemarks}
           </div>
         )}
 
         {/* SP Remarks */}
         {app.spRemarks && (
-          <div className="alert alert-info mt-2">
+          <div className="alert mt-2" style={{ backgroundColor: "#f1f3f5", borderColor: "#dee2e6", color: "#212529" }}>
             <b>SP Remarks:</b> {app.spRemarks}
           </div>
         )}
 
         {/* SDPO Remarks */}
         {app.sdpoRemarks && (
-          <div className="alert alert-info mt-2">
+          <div className="alert alert-warning mt-2">
             <b>SDPO Remarks:</b> {app.sdpoRemarks}
           </div>
         )}
 
-        {/* OC Report */}
+        {/* OC Report Summary */}
         {app.ocReport && (
-          <div className="alert alert-info mt-2">
-            <b>OC Investigation Report:</b> {app.ocReport}
+          <div className="alert mt-2" style={{ backgroundColor: "#d4edda", borderColor: "#c3e6cb", color: "#155724" }}>
+            <b>OC Investigation Summary:</b> {app.ocReport}
+            {app.ocReportPdfFileName && (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-success"
+                  onClick={handleDownloadOCReport}
+                  title="View/Download full OC investigation report PDF"
+                >
+                  📄 View Full OC Report ({app.ocReportPdfFileName})
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -489,14 +525,26 @@ const AuthorityApplicationDetails = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((entry) => (
+                  {history.map((entry, index) => (
                     <tr key={entry.historyId}>
-                      <td>{entry.actionAt ? new Date(entry.actionAt).toLocaleString() : "N/A"}</td>
-                      <td>{entry.authorityRole || "N/A"}</td>
-                      <td>{entry.actionType || "N/A"}</td>
-                      <td>{entry.message || "-"}</td>
-                      <td>{(entry.previousStage || "-") + " → " + (entry.newStage || "-")}</td>
-                      <td>{(entry.previousStatus || "-") + " → " + (entry.newStatus || "-")}</td>
+                      <td style={{ backgroundColor: index % 2 === 0 ? "#ffffff" : "#f2f2f2" }}>
+                        {entry.actionAt ? new Date(entry.actionAt).toLocaleString() : "N/A"}
+                      </td>
+                      <td style={{ backgroundColor: index % 2 === 0 ? "#ffffff" : "#f2f2f2" }}>
+                        {entry.authorityRole || "N/A"}
+                      </td>
+                      <td style={{ backgroundColor: index % 2 === 0 ? "#ffffff" : "#f2f2f2" }}>
+                        {entry.actionType || "N/A"}
+                      </td>
+                      <td style={{ backgroundColor: index % 2 === 0 ? "#ffffff" : "#f2f2f2" }}>
+                        {entry.message || "-"}
+                      </td>
+                      <td style={{ backgroundColor: index % 2 === 0 ? "#ffffff" : "#f2f2f2" }}>
+                        {(entry.previousStage || "-") + " → " + (entry.newStage || "-")}
+                      </td>
+                      <td style={{ backgroundColor: index % 2 === 0 ? "#ffffff" : "#f2f2f2" }}>
+                        {(entry.previousStatus || "-") + " → " + (entry.newStatus || "-")}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -613,15 +661,28 @@ const AuthorityApplicationDetails = () => {
         {roleName === "OC" && app.currentStage === "OC_PENDING" && (
           <div className="mt-4">
             <h5>Officer in Charge - Investigation Report</h5>
-            <label><b>Investigation Report:</b></label>
+            <label><b>Investigation Summary: <span className="text-danger">*</span></b></label>
             <textarea
               className="form-control mb-2"
-              rows="6"
+              rows="4"
               value={report}
               onChange={(e) => setReport(e.target.value)}
-              placeholder="Enter your investigation findings and observations"
+              placeholder="Enter a concise summary of investigation findings and recommendation (Approve/Reject with justification)"
             ></textarea>
-
+            <div className="mb-3">
+              <label className="form-label"><b>Full Report PDF <span className="text-muted">(optional, max 5 MB)</span></b></label>
+              <input
+                type="file"
+                className="form-control"
+                accept="application/pdf"
+                onChange={(e) => setOcReportPdfFile(e.target.files[0] || null)}
+              />
+              {ocReportPdfFile && (
+                <small className="text-success mt-1 d-block">
+                  Selected: {ocReportPdfFile.name} ({(ocReportPdfFile.size / 1024).toFixed(1)} KB)
+                </small>
+              )}
+            </div>
             <button className="btn btn-success" onClick={handleOCSubmitReport}>
               Submit Investigation Report
             </button>

@@ -7,6 +7,7 @@ import nic.mn.pis.dto.PermitApplicationDto;
 import nic.mn.pis.service.AuthorityService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 
@@ -115,14 +116,24 @@ public class AuthorityController {
     }
 
     /**
-     * Officer-in-Charge submits verification report
+     * Officer-in-Charge submits investigation: short summary text + optional PDF attachment.
+     * Accepts multipart/form-data with:
+     *   - summary (required): short text summary of findings
+     *   - pdfFile (optional): full investigation report PDF
      * Transitions: OC_PENDING → SDPO_REVIEW_PENDING, FORWARDED_TO_OC → OC_VERIFIED
      */
-    @PutMapping("/oc/report/{id}")
+    @PostMapping(value = "/oc/report/{id}", consumes = {"multipart/form-data"})
     public ResponseEntity<PermitApplicationDto> submitOCReport(
             @PathVariable Long id,
-            @RequestBody AuthorityActionRequest request) {
-        return ResponseEntity.ok(authorityService.submitOCReport(id, request.getReport()));
+            @RequestParam("summary") String summary,
+            @RequestParam(value = "pdfFile", required = false) MultipartFile pdfFile) {
+        try {
+            return ResponseEntity.ok(authorityService.submitOCReport(id, summary, pdfFile));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to submit OC report: " + e.getMessage());
+        }
     }
 
     /**

@@ -2,7 +2,9 @@ package nic.mn.pis.service;
 
 import nic.mn.pis.dto.AuthorityActionHistoryDto;
 import nic.mn.pis.dto.PermitApplicationDto;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -65,13 +67,14 @@ public interface AuthorityService {
     PermitApplicationDto forwardToOC(Long applicationId, String sdpoRemarks);
 
     /**
-     * Officer-in-Charge submits verification report
-     * Transitions from OC_PENDING to SDPO_REVIEW_PENDING
+     * Officer-in-Charge submits investigation: a short summary text plus an optional PDF attachment.
+     * Transitions from OC_PENDING to SDPO_REVIEW_PENDING.
      * @param applicationId the application ID
-     * @param ocReport detailed investigation report from OC
+     * @param ocSummary short summary of findings (stored in workflow/history)
+     * @param pdfFile   optional full investigation report PDF (may be null)
      * @return updated application DTO
      */
-    PermitApplicationDto submitOCReport(Long applicationId, String ocReport);
+    PermitApplicationDto submitOCReport(Long applicationId, String ocSummary, MultipartFile pdfFile) throws IOException;
 
     /**
      * Sub-Divisional Police Officer forwards OC report back to State Police for review

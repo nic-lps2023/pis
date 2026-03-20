@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   getInboxByStage,
   submitOCReport,
-  downloadDocument,
+  viewDocument,
   getAuthorityApplicationsByStatus,
 } from "../../services/AuthorityService";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +19,7 @@ const OCDashboard = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedAppId, setSelectedAppId] = useState(null);
   const [reportText, setReportText] = useState("");
+  const [reportPdfFile, setReportPdfFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("pending");
   const navigate = useNavigate();
@@ -27,6 +28,22 @@ const OCDashboard = () => {
     app.fullAddress ||
     [app.venueName, app.locality, app.pincode].filter(Boolean).join(", ") ||
     "N/A";
+
+  const sortByApplicationIdDesc = (list) =>
+    [...(list || [])].sort((a, b) => {
+      const aId = Number(a?.applicationId);
+      const bId = Number(b?.applicationId);
+
+      if (Number.isNaN(aId) || Number.isNaN(bId)) {
+        return String(b?.applicationId || "").localeCompare(
+          String(a?.applicationId || ""),
+          undefined,
+          { numeric: true, sensitivity: "base" }
+        );
+      }
+
+      return bId - aId;
+    });
 
   useEffect(() => {
     loadApplications();
@@ -48,8 +65,8 @@ const OCDashboard = () => {
         setApplications({
           pending: pendingRes.data || [],
           completed: completedRes.data || [],
-          approved: approvedRes.data || [],
-          rejected: rejectedRes.data || [],
+          approved: sortByApplicationIdDesc(approvedRes.data || []),
+          rejected: sortByApplicationIdDesc(rejectedRes.data || []),
         });
         setLoading(false);
       })
@@ -65,21 +82,27 @@ const OCDashboard = () => {
   };
 
   /**
-   * Submit investigation report
+   * Submit investigation report (short summary + optional PDF)
    */
   const handleSubmitReport = () => {
     if (!reportText.trim()) {
-      alert("Please enter the investigation report");
+      alert("Please enter the investigation summary");
+      return;
+    }
+
+    if (reportPdfFile && reportPdfFile.type !== "application/pdf") {
+      alert("Only PDF files are allowed for the investigation report attachment.");
       return;
     }
 
     setSubmitting(true);
-    submitOCReport(selectedAppId, reportText)
+    submitOCReport(selectedAppId, reportText, reportPdfFile || null)
       .then((res) => {
         console.log("Report submitted:", res.data);
         alert("Investigation report submitted successfully!");
         setShowReportModal(false);
         setReportText("");
+        setReportPdfFile(null);
         setSelectedAppId(null);
         loadApplications();
       })
@@ -96,22 +119,26 @@ const OCDashboard = () => {
   };
 
   /**
-   * Handle document download
+   * Handle inline document view in new tab
    */
-  const handleDownloadDocument = (applicationId, fileName) => {
-    downloadDocument(applicationId)
+  const handleViewDocument = (applicationId) => {
+    viewDocument(applicationId)
       .then((response) => {
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", fileName || "document.pdf");
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
+        const contentType = response.headers?.["content-type"] || "application/pdf";
+        if (!contentType.toLowerCase().includes("pdf")) {
+          alert("Unable to open document. The server did not return a PDF file.");
+          return;
+        }
+
+        const url = window.URL.createObjectURL(
+          new Blob([response.data], { type: "application/pdf" })
+        );
+        window.open(url, "_blank", "noopener,noreferrer");
+        setTimeout(() => window.URL.revokeObjectURL(url), 2000);
       })
       .catch((err) => {
-        console.error("Error downloading document:", err);
-        alert("Failed to download document. Please try again.");
+        console.error("Error opening document:", err);
+        alert("Failed to open document. Please try again.");
       });
   };
 
@@ -131,6 +158,7 @@ const OCDashboard = () => {
     setShowReportModal(false);
     setSelectedAppId(null);
     setReportText("");
+    setReportPdfFile(null);
   };
 
   if (loading) return <p className="text-center mt-4">Loading...</p>;
@@ -246,13 +274,8 @@ const OCDashboard = () => {
                     {app.documentFileName ? (
                       <button
                         className="btn btn-sm btn-outline-secondary"
-                        onClick={() =>
-                          handleDownloadDocument(
-                            app.applicationId,
-                            app.documentFileName
-                          )
-                        }
-                        title="Download application document"
+                          onClick={() => handleViewDocument(app.applicationId)}
+                          title="Open application document in new tab"
                       >
                         📄
                       </button>
@@ -307,32 +330,50 @@ const OCDashboard = () => {
               </div>
               <div className="modal-body">
                 <div className="alert alert-warning">
-                  <strong>⚠️ Important:</strong> Please provide a detailed
-                  investigation report including physical verification findings,
-                  location verification, and any concerns or observations.
+                  <strong>⚠️ Important:</strong> Enter a concise summary of your
+                  investigation findings. You may optionally attach the full
+                  investigation report as a PDF (max 5 MB).
                 </div>
                 <div className="mb-3">
                   <label htmlFor="report-text" className="form-label">
-                    Investigation Report <span className="text-danger">*</span>
+                    Investigation Summary <span className="text-danger">*</span>
                   </label>
                   <textarea
                     id="report-text"
                     className="form-control"
-                    rows="8"
+                    rows="5"
                     value={reportText}
                     onChange={(e) => setReportText(e.target.value)}
-                    placeholder="Enter your detailed investigation report...
-
-Include:
-- Event location verification
-- Safety and security assessment
-- Any concerns or observations
-- Recommendation (Approve/Reject with justification)"
+                    placeholder="Enter a concise summary of your investigation findings and recommendation (Approve/Reject with justification)..."
                     disabled={submitting}
                   ></textarea>
                   <small className="text-muted">
-                    Word count: {reportText.split(/\s+/).filter(w => w).length}
+                    {reportText.split(/\s+/).filter((w) => w).length} words
                   </small>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="report-pdf" className="form-label">
+                    Full Investigation Report PDF{" "}
+                    <span className="text-muted">(optional, max 5 MB)</span>
+                  </label>
+                  <input
+                    id="report-pdf"
+                    type="file"
+                    className="form-control"
+                    accept="application/pdf"
+                    onChange={(e) =>
+                      setReportPdfFile(e.target.files[0] || null)
+                    }
+                    disabled={submitting}
+                  />
+                  {reportPdfFile && (
+                    <small className="text-success mt-1 d-block">
+                      Selected: {reportPdfFile.name} ({
+                        (reportPdfFile.size / 1024).toFixed(1)
+                      }{" "}
+                      KB)
+                    </small>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">

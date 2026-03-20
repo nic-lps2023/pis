@@ -120,10 +120,23 @@ public class PermitApplication {
     private String sdpoRemarks;
 
     /**
-     * Detailed investigation report from Officer-in-Charge (OC)
+     * Short summary of the OC investigation (stored in workflow/history).
+     * For the full investigation report, see ocReportPdfPath.
      */
-    @Column(length = 4000)
+    @Column(length = 1000)
     private String ocReport;
+
+    /**
+     * Path to the uploaded OC investigation report PDF (optional)
+     */
+    @Column(nullable = true)
+    private String ocReportPdfPath;
+
+    /**
+     * Original file name of the uploaded OC investigation report PDF
+     */
+    @Column(nullable = true)
+    private String ocReportPdfFileName;
 
     /**
      * Reference to the applicant (user who submitted the application)

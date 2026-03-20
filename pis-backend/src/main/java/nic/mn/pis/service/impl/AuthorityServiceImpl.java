@@ -12,6 +12,7 @@ import nic.mn.pis.repository.AuthorityActionHistoryRepository;
 import nic.mn.pis.repository.PermitApplicationRepository;
 import nic.mn.pis.repository.UserRepository;
 import nic.mn.pis.service.AuthorityService;
+import nic.mn.pis.service.FileStorageService;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -19,6 +20,7 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,6 +48,7 @@ public class AuthorityServiceImpl implements AuthorityService {
     private PermitApplicationRepository permitApplicationRepository;
     private AuthorityActionHistoryRepository authorityActionHistoryRepository;
     private UserRepository userRepository;
+    private FileStorageService fileStorageService;
 
         @Override
         public List<AuthorityActionHistoryDto> getActionHistory(Long applicationId) {
@@ -228,22 +231,41 @@ public class AuthorityServiceImpl implements AuthorityService {
     }
 
     /**
-     * OC submits verification report
+     * OC submits investigation: short summary + optional PDF attachment
      * Status: FORWARDED_TO_OC → OC_VERIFIED
      * Stage: OC_PENDING → SDPO_REVIEW_PENDING
      */
     @Override
-    public PermitApplicationDto submitOCReport(Long applicationId, String ocReport) {
+    public PermitApplicationDto submitOCReport(Long applicationId, String ocSummary, MultipartFile pdfFile) throws IOException {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
 
-        app.setOcReport(ocReport);
+        app.setOcReport(ocSummary);
+
+        if (pdfFile != null && !pdfFile.isEmpty()) {
+            String storedPath = fileStorageService.storeOCReportPdf(pdfFile);
+            app.setOcReportPdfPath(storedPath);
+            app.setOcReportPdfFileName(pdfFile.getOriginalFilename());
+        }
+
         app.setCurrentStage("SDPO_REVIEW_PENDING");
         app.setStatus("OC_VERIFIED");
 
         PermitApplication saved = permitApplicationRepository.save(app);
-        saveHistory(saved, "OC", "OC_REPORT_SUBMITTED", ocReport, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
+
+        String conciseSummary = (ocSummary != null && !ocSummary.isBlank())
+            ? ocSummary.trim()
+                : "OC investigation report submitted";
+        if (conciseSummary.length() > 300) {
+            conciseSummary = conciseSummary.substring(0, 300) + "...";
+        }
+        String historyMessage = conciseSummary;
+        if (saved.getOcReportPdfFileName() != null) {
+            historyMessage += " [PDF: " + saved.getOcReportPdfFileName() + "]";
+        }
+        saveHistory(saved, "OC", "OC_REPORT_SUBMITTED", historyMessage,
+                previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
 
         return PermitApplicationMapper.mapToDto(saved);
     }

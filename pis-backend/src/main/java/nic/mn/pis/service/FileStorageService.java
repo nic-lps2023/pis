@@ -37,6 +37,15 @@ public interface FileStorageService {
     String getAbsoluteFilePath(String relativeFilePath);
 
     /**
+     * Store an OC investigation report PDF in uploads/oc-reports/
+     * @param file the PDF MultipartFile (max 5 MB)
+     * @return the stored relative file path
+     * @throws IOException if file operations fail
+     * @throws IllegalArgumentException if file is not a PDF or exceeds size limit
+     */
+    String storeOCReportPdf(MultipartFile file) throws IOException;
+
+    /**
      * Validate if the file is a PDF
      * @param file the MultipartFile to validate
      * @return true if file is a PDF, false otherwise

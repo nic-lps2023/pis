@@ -76,14 +76,25 @@ public class PermitApplicationDto {
     private String sdpoRemarks;
 
     /**
-     * Detailed investigation report from Officer-in-Charge (OC)
+     * Short summary of the OC investigation report
      */
     private String ocReport;
+
+    /**
+     * Path to the uploaded OC investigation report PDF (optional)
+     */
+    private String ocReportPdfPath;
+
+    /**
+     * Original file name of the OC investigation report PDF
+     */
+    private String ocReportPdfFileName;
 
     /**
      * User ID of the applicant who submitted the application
      */
     private Long userId;
+    private String applicantFullName;
 
     /**
      * Auto-assigned OC user details
