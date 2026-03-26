@@ -20,7 +20,6 @@ const PermitApplicationComponent = () => {
   const [policeStationId, setPoliceStationId] = useState("");
   const [venueName, setVenueName] = useState("");
   const [fullAddress, setFullAddress] = useState("");
-  const [locality, setLocality] = useState("");
   const [landmark, setLandmark] = useState("");
   const [pincode, setPincode] = useState("");
   const [latitude, setLatitude] = useState("");
@@ -40,7 +39,6 @@ const PermitApplicationComponent = () => {
     policeStationId: "",
     venueName: "",
     fullAddress: "",
-    locality: "",
     pincode: "",
     file: "",
   });
@@ -133,7 +131,6 @@ const PermitApplicationComponent = () => {
       policeStationId: "",
       venueName: "",
       fullAddress: "",
-      locality: "",
       pincode: "",
       file: "",
     };
@@ -176,10 +173,6 @@ const PermitApplicationComponent = () => {
     }
     if (!fullAddress.trim()) {
       nextErrors.fullAddress = "Detailed Address is required";
-      valid = false;
-    }
-    if (!locality.trim()) {
-      nextErrors.locality = "Locality is required";
       valid = false;
     }
     if (!pincode.trim()) {
@@ -225,7 +218,6 @@ const PermitApplicationComponent = () => {
       policeStationId: parseInt(policeStationId),
       venueName,
       fullAddress,
-      locality,
       landmark,
       pincode,
       latitude: latitude ? parseFloat(latitude) : null,
@@ -249,7 +241,7 @@ const PermitApplicationComponent = () => {
     const query =
       latitude && longitude
         ? `${latitude},${longitude}`
-        : [venueName, fullAddress, locality, pincode].filter(Boolean).join(", ");
+        : [venueName, fullAddress, pincode].filter(Boolean).join(", ");
 
     if (!query.trim()) {
       alert("Please enter venue/address first.");
@@ -480,7 +472,7 @@ const PermitApplicationComponent = () => {
 
             <div className="form-group mb-2">
               <label className="form-label">
-                Detailed Address:<span className="text-danger ms-1">*</span>
+                Detailed Address/Areas to be covered(separated by commas):<span className="text-danger ms-1">*</span>
               </label>
               <textarea
                 className={`form-control ${errors.fullAddress ? "is-invalid" : ""}`}
@@ -490,29 +482,10 @@ const PermitApplicationComponent = () => {
                   setFullAddress(e.target.value);
                   setErrors((prev) => ({ ...prev, fullAddress: "" }));
                 }}
-                placeholder="Enter complete event address"
+                placeholder="Enter detailed address/areas to be covered, separated by commas"
               ></textarea>
               {errors.fullAddress && (
                 <div className="invalid-feedback">{errors.fullAddress}</div>
-              )}
-            </div>
-
-            <div className="form-group mb-2">
-              <label className="form-label">
-                Locality:<span className="text-danger ms-1">*</span>
-              </label>
-              <input
-                type="text"
-                className={`form-control ${errors.locality ? "is-invalid" : ""}`}
-                value={locality}
-                onChange={(e) => {
-                  setLocality(e.target.value);
-                  setErrors((prev) => ({ ...prev, locality: "" }));
-                }}
-                placeholder="Enter locality"
-              />
-              {errors.locality && (
-                <div className="invalid-feedback">{errors.locality}</div>
               )}
             </div>
 

@@ -501,16 +501,12 @@ public class AuthorityServiceImpl implements AuthorityService {
             
             String row2 = "| " + padRight(safeValue(app.getFullAddress()), venueColWidth)
                 + " | " + padRight("End: " + formatPermitDateTime(app.getEndDateTime()), dateTimeColWidth) + " |";
-            
-            String row3 = "| " + padRight(safeValue(app.getLocality()), venueColWidth)
-                + " | " + padRight("", dateTimeColWidth) + " |";
 
             y = writeText(contentStream, border, mono, scheduleFontSize, leftMargin, y);
             y = writeText(contentStream, header, mono, scheduleFontSize, leftMargin, y);
             y = writeText(contentStream, separator, mono, scheduleFontSize, leftMargin, y);
             y = writeText(contentStream, row1, mono, scheduleFontSize, leftMargin, y);
             y = writeText(contentStream, row2, mono, scheduleFontSize, leftMargin, y);
-            y = writeText(contentStream, row3, mono, scheduleFontSize, leftMargin, y);
             y = writeText(contentStream, border, mono, scheduleFontSize, leftMargin, y);
 
             y -= 6f;

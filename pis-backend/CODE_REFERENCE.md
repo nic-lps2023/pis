@@ -430,23 +430,37 @@ spring.servlet.multipart.max-request-size=10MB
 ### permit_applications Table
 ```sql
 CREATE TABLE permit_applications (
-    application_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    application_id BIGSERIAL PRIMARY KEY,
+    submission_date TIMESTAMP NOT NULL,
     event_title VARCHAR(255) NOT NULL,
     purpose VARCHAR(2000) NOT NULL,
     start_date_time TIMESTAMP NOT NULL,
     end_date_time TIMESTAMP NOT NULL,
     permit_type VARCHAR(255) NOT NULL,
-    location_tag VARCHAR(255) NOT NULL,
-    document_path VARCHAR(500),  -- Changed to nullable
-    document_file_name VARCHAR(500),  -- Changed to nullable
+    police_station_id BIGINT,
+    venue_name VARCHAR(255),
+    landmark VARCHAR(255),
+    pincode VARCHAR(10),
+    full_address VARCHAR(1000),
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    document_path VARCHAR(500),
+    document_file_name VARCHAR(500),
+    permit_path VARCHAR(500),
+    permit_file_name VARCHAR(500),
     status VARCHAR(50) NOT NULL DEFAULT 'SUBMITTED',
     current_stage VARCHAR(50) NOT NULL DEFAULT 'DC_PENDING',
     dc_remarks VARCHAR(2000),
     sp_remarks VARCHAR(2000),
     sdpo_remarks VARCHAR(2000),
-    oc_report VARCHAR(4000),
-    user_id BIGINT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    oc_report VARCHAR(1000),
+    oc_report_pdf_path VARCHAR(500),
+    oc_report_pdf_file_name VARCHAR(500),
+    user_id BIGINT,
+    assigned_oc_user_id BIGINT,
+    FOREIGN KEY (police_station_id) REFERENCES police_stations(police_station_id),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (assigned_oc_user_id) REFERENCES users(user_id)
 );
 ```
 

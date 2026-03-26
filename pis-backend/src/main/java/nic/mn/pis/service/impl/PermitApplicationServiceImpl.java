@@ -163,7 +163,6 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
         application.setEndDateTime(dto.getEndDateTime());
         application.setPermitType(dto.getPermitType());
         application.setVenueName(dto.getVenueName());
-        application.setLocality(dto.getLocality());
         application.setLandmark(dto.getLandmark());
         application.setPincode(dto.getPincode());
         application.setFullAddress(dto.getFullAddress());
@@ -204,7 +203,6 @@ public class PermitApplicationServiceImpl implements PermitApplicationService {
 
         application.setPoliceStation(policeStation);
         application.setVenueName(dto.getVenueName());
-        application.setLocality(dto.getLocality());
         application.setLandmark(dto.getLandmark());
         application.setPincode(dto.getPincode());
         application.setFullAddress(dto.getFullAddress());

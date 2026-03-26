@@ -207,7 +207,7 @@ const SPDashboard = () => {
             className={`nav-link ${activeTab === "pending" ? "active" : ""}`}
             onClick={() => setActiveTab("pending")}
           >
-            📋 Pending ({applications.pending?.length || 0})
+            📋 New ({applications.pending?.length || 0})
           </button>
         </li>
         <li className="nav-item">
@@ -215,7 +215,7 @@ const SPDashboard = () => {
             className={`nav-link ${activeTab === "review" ? "active" : ""}`}
             onClick={() => setActiveTab("review")}
           >
-            🔍 For Review ({applications.review?.length || 0})
+            🔍 Review ({applications.review?.length || 0})
           </button>
         </li>
         <li className="nav-item">

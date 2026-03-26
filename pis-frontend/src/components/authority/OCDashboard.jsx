@@ -182,7 +182,7 @@ const OCDashboard = () => {
             className={`nav-link ${activeTab === "pending" ? "active" : ""}`}
             onClick={() => setActiveTab("pending")}
           >
-            📋 Pending ({applications.pending?.length || 0})
+            📋 New ({applications.pending?.length || 0})
           </button>
         </li>
         <li className="nav-item">

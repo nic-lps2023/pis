@@ -56,9 +56,6 @@ public class PermitApplication {
     @Column
     private String venueName;
 
-    @Column
-    private String locality;
-
     private String landmark;
 
     @Column(length = 10)

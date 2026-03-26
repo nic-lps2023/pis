@@ -47,7 +47,7 @@ const HeaderComponent = () => {
 
           {isLoggedIn() && (
             <div className="d-flex align-items-center gap-2">
-              <span className="text-light">{getFullName() || "Account"}</span>
+              <span className="text-light">{(getFullName() || "Account").toUpperCase()}</span>
               <button className="btn btn-outline-light" onClick={openMyProfile}>
                 My Profile
               </button>

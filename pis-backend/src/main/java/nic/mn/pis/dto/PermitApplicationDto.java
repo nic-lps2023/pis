@@ -32,7 +32,6 @@ public class PermitApplicationDto {
     private String policeStationName;
 
     private String venueName;
-    private String locality;
     private String landmark;
     private String pincode;
     private String fullAddress;

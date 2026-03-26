@@ -16,7 +16,6 @@ public class PermitApplicationMapper {
         dto.setEndDateTime(app.getEndDateTime());
         dto.setPermitType(app.getPermitType());
         dto.setVenueName(app.getVenueName());
-        dto.setLocality(app.getLocality());
         dto.setLandmark(app.getLandmark());
         dto.setPincode(app.getPincode());
         dto.setFullAddress(app.getFullAddress());
@@ -91,7 +90,6 @@ public class PermitApplicationMapper {
         app.setEndDateTime(dto.getEndDateTime());
         app.setPermitType(dto.getPermitType());
         app.setVenueName(dto.getVenueName());
-        app.setLocality(dto.getLocality());
         app.setLandmark(dto.getLandmark());
         app.setPincode(dto.getPincode());
         app.setFullAddress(dto.getFullAddress());

@@ -842,9 +842,9 @@ const UserComponent = () => {
               <button
                 type="button"
                 className="btn btn-secondary ms-2"
-                onClick={() => navigator(isEditMode && isAdmin ? "/users" : "/login")}
+                onClick={() => navigator(-1)}
               >
-                {isEditMode && isAdmin ? "Back to Users" : "Back to Login"}
+                Cancel
               </button>
             </form>
             )}
