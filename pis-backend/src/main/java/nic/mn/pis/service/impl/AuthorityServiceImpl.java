@@ -495,7 +495,7 @@ public class AuthorityServiceImpl implements AuthorityService {
             final float scheduleFontSize = 9.2f;
             String border = "+" + "-".repeat(venueColWidth + 2) + "+" + "-".repeat(dateTimeColWidth + 2) + "+";
             String separator = border;
-            String header = "| " + padRight("Venue", venueColWidth) + " | " + padRight("Date and Time", dateTimeColWidth) + " |";
+            String header = "| " + padRight("Venue / Areas to be covered", venueColWidth) + " | " + padRight("Date and Time", dateTimeColWidth) + " |";
             String row1 = "| " + padRight(safeValue(app.getVenueName()), venueColWidth)
                 + " | " + padRight("Start: " + formatPermitDateTime(app.getStartDateTime()), dateTimeColWidth) + " |";
             

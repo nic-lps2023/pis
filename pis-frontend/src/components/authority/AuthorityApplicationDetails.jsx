@@ -31,7 +31,7 @@ const AuthorityApplicationDetails = () => {
 
   const getLocationText = (application) =>
     application?.fullAddress ||
-    [application?.venueName, application?.locality, application?.pincode]
+    [application?.locality, application?.pincode]
       .filter(Boolean)
       .join(", ") ||
     "N/A";
@@ -429,7 +429,8 @@ const AuthorityApplicationDetails = () => {
             <p><b>Application Date:</b> {formatDateTime(getApplicationDate(app))}</p>
             <p><b>Event Title:</b> {app.eventTitle}</p>
             <p><b>Permit Type:</b> {app.permitType}</p>
-            <p><b>Location:</b> {getLocationText(app)}</p>
+            <p><b>Venue Name:</b> {app.venueName || "N/A"}</p>
+            <p><b>Location/Areas to be covered:</b> {getLocationText(app)}</p>
             <p><b>Police Station:</b> {app.policeStationName || "N/A"}</p>
           </div>
           <div className="col-md-6">
