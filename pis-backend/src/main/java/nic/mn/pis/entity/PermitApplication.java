@@ -148,4 +148,5 @@ public class PermitApplication {
     @ManyToOne
     @JoinColumn(name = "assigned_oc_user_id")
     private User assignedOc;
+
 }

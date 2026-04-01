@@ -7,8 +7,10 @@ const SPDashboard = () => {
   const [applications, setApplications] = useState({
     pending: [],
     review: [],
+    all: [],
     approved: [],
     rejected: [],
+    incomplete: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,6 +20,15 @@ const SPDashboard = () => {
   const [actionType, setActionType] = useState(""); // "forward" or "recommend"
   const [processing, setProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState("pending"); // "pending" or "review"
+  const [searchQuery, setSearchQuery] = useState("");
+  const [allPage, setAllPage] = useState(1);
+  const [allPerPage, setAllPerPage] = useState(5);
+  const [approvedPage, setApprovedPage] = useState(1);
+  const [approvedPerPage, setApprovedPerPage] = useState(5);
+  const [rejectedPage, setRejectedPage] = useState(1);
+  const [rejectedPerPage, setRejectedPerPage] = useState(5);
+  const [incompletePage, setIncompletePage] = useState(1);
+  const [incompletePerPage, setIncompletePerPage] = useState(5);
   const navigate = useNavigate();
 
   const getLocationText = (app) =>
@@ -67,8 +78,15 @@ const SPDashboard = () => {
         setApplications({
           pending: res1.data || [],
           review: res2.data || [],
+          all: sortByApplicationIdDesc(allApplications),
           approved: sortByApplicationIdDesc(byStatus(allApplications, "APPROVED")),
           rejected: sortByApplicationIdDesc(byStatus(allApplications, "REJECTED")),
+          incomplete: sortByApplicationIdDesc(
+            (allApplications || []).filter((a) => {
+              const status = (a.status || "").toUpperCase();
+              return status !== "APPROVED" && status !== "REJECTED";
+            })
+          ),
         });
         setLoading(false);
       })
@@ -189,9 +207,165 @@ const SPDashboard = () => {
     setActionType("");
   };
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchQuery("");
+    setAllPage(1);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setAllPage(1);
+  };
+
+  const filterAllApplications = () => {
+    if (!searchQuery.trim()) return applications.all;
+    const q = searchQuery.toLowerCase();
+    return applications.all.filter((app) => {
+      const haystack = [
+        String(app.applicationId || ''),
+        app.eventTitle || '',
+        app.permitType || '',
+        app.status || '',
+        getLocationText(app),
+      ].join(' ').toLowerCase();
+      return haystack.includes(q);
+    });
+  };
+
+  const paginate = (items, page, perPage) => {
+    const total = items.length;
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const current = Math.min(Math.max(1, page), totalPages);
+    const start = (current - 1) * perPage;
+    return {
+      list: items.slice(start, start + perPage),
+      current,
+      totalPages,
+      total,
+      perPage,
+    };
+  };
+
+  const allItems = filterAllApplications();
+  const allPagination = paginate(allItems, allPage, allPerPage);
+  const approvedPagination = paginate(applications.approved, approvedPage, approvedPerPage);
+  const rejectedPagination = paginate(applications.rejected, rejectedPage, rejectedPerPage);
+  const incompletePagination = paginate(applications.incomplete, incompletePage, incompletePerPage);
+
+  const handleItemsPerPageChange = (tab, e) => {
+    const value = Number(e.target.value) || 5;
+    if (tab === "all") {
+      setAllPerPage(value);
+      setAllPage(1);
+    } else if (tab === "approved") {
+      setApprovedPerPage(value);
+      setApprovedPage(1);
+    } else if (tab === "rejected") {
+      setRejectedPerPage(value);
+      setRejectedPage(1);
+    } else if (tab === "incomplete") {
+      setIncompletePerPage(value);
+      setIncompletePage(1);
+    }
+  };
+  const handlePageChange = (tab, page) => {
+    const value = Math.max(1, page);
+    if (tab === "all") {
+      setAllPage(value);
+    } else if (tab === "approved") {
+      setApprovedPage(value);
+    } else if (tab === "rejected") {
+      setRejectedPage(value);
+    } else if (tab === "incomplete") {
+      setIncompletePage(value);
+    }
+  };
+
+  const renderPagination = (paginationInfo) => {
+    if (!paginationInfo || paginationInfo.totalPages <= 1) return null;
+
+    const { current, totalPages, total } = paginationInfo;
+    const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+      .filter((page) => Math.abs(page - current) <= 2 || page === 1 || page === totalPages)
+      .reduce((acc, page, idx, arr) => {
+        const prev = arr[idx - 1];
+        if (prev && page - prev > 1) acc.push('ellipsis-' + page);
+        acc.push(page);
+        return acc;
+      }, []);
+
+    return (
+      <div className="d-flex justify-content-between align-items-center mt-4 mb-4">
+        <div>
+          <small className="text-muted">
+            Page {current} of {totalPages} | Total: {total} applications
+          </small>
+        </div>
+        <nav aria-label="All applications pagination">
+          <ul className="pagination mb-0">
+            <li className={`page-item ${current === 1 ? 'disabled' : ''}`}>
+              <button className="page-link" onClick={() => handlePageChange(1)} disabled={current === 1}>
+                First
+              </button>
+            </li>
+            <li className={`page-item ${current === 1 ? 'disabled' : ''}`}>
+              <button className="page-link" onClick={() => handlePageChange(current - 1)} disabled={current === 1}>
+                Previous
+              </button>
+            </li>
+            {pages.map((item) =>
+              typeof item === 'string' ? (
+                <li className="page-item disabled" key={item}>
+                  <span className="page-link">...</span>
+                </li>
+              ) : (
+                <li key={item} className={`page-item ${item === current ? 'active' : ''}`}>
+                  <button className="page-link" onClick={() => handlePageChange(item)}>
+                    {item}
+                  </button>
+                </li>
+              )
+            )}
+            <li className={`page-item ${current === totalPages ? 'disabled' : ''}`}>
+              <button className="page-link" onClick={() => handlePageChange(current + 1)} disabled={current === totalPages}>
+                Next
+              </button>
+            </li>
+            <li className={`page-item ${current === totalPages ? 'disabled' : ''}`}>
+              <button className="page-link" onClick={() => handlePageChange(totalPages)} disabled={current === totalPages}>
+                Last
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    );
+  };
+
   if (loading) return <p className="text-center mt-4">Loading...</p>;
 
-  const currentList = applications[activeTab] || [];
+  const currentList =
+    activeTab === 'all'
+      ? allPagination.list
+      : activeTab === 'approved'
+      ? approvedPagination.list
+      : activeTab === 'rejected'
+      ? rejectedPagination.list
+      : activeTab === 'incomplete'
+      ? incompletePagination.list
+      : applications[activeTab] || [];
+
+  const currentPagination =
+    activeTab === 'all'
+      ? allPagination
+      : activeTab === 'approved'
+      ? approvedPagination
+      : activeTab === 'rejected'
+      ? rejectedPagination
+      : activeTab === 'incomplete'
+      ? incompletePagination
+      : null;
 
   return (
     <div className="container mt-4">
@@ -205,7 +379,7 @@ const SPDashboard = () => {
         <li className="nav-item">
           <button
             className={`nav-link ${activeTab === "pending" ? "active" : ""}`}
-            onClick={() => setActiveTab("pending")}
+            onClick={() => handleTabChange("pending")}
           >
             📋 New ({applications.pending?.length || 0})
           </button>
@@ -213,15 +387,23 @@ const SPDashboard = () => {
         <li className="nav-item">
           <button
             className={`nav-link ${activeTab === "review" ? "active" : ""}`}
-            onClick={() => setActiveTab("review")}
+            onClick={() => handleTabChange("review")}
           >
             🔍 Review ({applications.review?.length || 0})
           </button>
         </li>
         <li className="nav-item">
           <button
+            className={`nav-link ${activeTab === "all" ? "active" : ""}`}
+            onClick={() => handleTabChange("all")}
+          >
+            📁 All Applications ({applications.all?.length || 0})
+          </button>
+        </li>
+        <li className="nav-item">
+          <button
             className={`nav-link ${activeTab === "approved" ? "active" : ""}`}
-            onClick={() => setActiveTab("approved")}
+            onClick={() => handleTabChange("approved")}
           >
             ✅ Approved Applications ({applications.approved?.length || 0})
           </button>
@@ -229,12 +411,62 @@ const SPDashboard = () => {
         <li className="nav-item">
           <button
             className={`nav-link ${activeTab === "rejected" ? "active" : ""}`}
-            onClick={() => setActiveTab("rejected")}
+            onClick={() => handleTabChange("rejected")}
           >
             ❌ Rejected Applications ({applications.rejected?.length || 0})
           </button>
         </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "incomplete" ? "active" : ""}`}
+            onClick={() => handleTabChange("incomplete")}
+          >
+            ⚠️ Incomplete ({applications.incomplete?.length || 0})
+          </button>
+        </li>
       </ul>
+
+      {(activeTab === "all" || activeTab === "approved" || activeTab === "rejected" || activeTab === "incomplete") && (
+        <div className="mt-4 mb-3">
+          {activeTab === "all" && (
+            <div className="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <input
+                type="text"
+                className="form-control flex-grow-1"
+                placeholder="Search by Application ID, Event Title, Permit Type, Status, or Location..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+            </div>
+          )}
+          <div className="d-flex align-items-center gap-3">
+            <label htmlFor="itemsPerPageSelect" className="form-label mb-0">
+              Items per page:
+            </label>
+            <select
+              id="itemsPerPageSelect"
+              className="form-select"
+              style={{ maxWidth: "150px" }}
+              value={
+                activeTab === "all"
+                  ? allPerPage
+                  : activeTab === "approved"
+                  ? approvedPerPage
+                  : rejectedPerPage
+              }
+              onChange={(e) => handleItemsPerPageChange(activeTab, e)}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+            <small className="text-muted ms-3">
+              Showing {currentList.length} of {currentPagination ? currentPagination.total : currentList.length} applications
+            </small>
+          </div>
+        </div>
+      )}
 
       {currentList.length === 0 && !error && (
         <p className="text-center mt-4 text-muted">No applications to display</p>
@@ -260,7 +492,14 @@ const SPDashboard = () => {
                 <td>{app.eventTitle}</td>
                 <td>{app.permitType}</td>
                 <td>
-                  <span className="badge bg-info">{app.status}</span>
+                  <button
+                    className="btn btn-sm btn-link p-0"
+                    onClick={() => navigate(`/application/${app.applicationId}/timeline`)}
+                    title="View application timeline"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <span className="badge bg-info">{app.status}</span>
+                  </button>
                   {app.permitPath && (
                     <span className="badge bg-success ms-2">Permit Available</span>
                   )}
@@ -320,6 +559,11 @@ const SPDashboard = () => {
           </tbody>
         </table>
       )}
+
+      {(activeTab === "all" && renderPagination(allPagination)) ||
+        (activeTab === "approved" && renderPagination(approvedPagination)) ||
+        (activeTab === "rejected" && renderPagination(rejectedPagination)) ||
+        (activeTab === "incomplete" && renderPagination(incompletePagination))}
 
       {/* Action Modal */}
       {showActionModal && (

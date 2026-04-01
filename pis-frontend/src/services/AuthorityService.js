@@ -123,3 +123,15 @@ export const downloadOCReport = (applicationId) =>
   axios.get(`${PERMIT_API_BASE_URL}/${applicationId}/download-oc-report`, {
     responseType: "blob",
   });
+
+/**
+ * Get all jurisdiction-aware applications for SDPO
+ * Returns applications where police stations belong to SDPO's subdivision
+ */
+export const getJurisdictionAwareApplications = () =>
+  axios.get(`${AUTHORITY_API_BASE_URL}/sdpo/all-applications`, {
+    headers: {
+      "X-Role-Id": localStorage.getItem("roleId") || "",
+      "X-User-Id": localStorage.getItem("userId") || "",
+    },
+  });

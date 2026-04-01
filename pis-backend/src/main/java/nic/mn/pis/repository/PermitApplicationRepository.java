@@ -15,4 +15,9 @@ public interface PermitApplicationRepository extends JpaRepository<PermitApplica
     List<PermitApplication> findByStatusAndPoliceStation_Subdivision_SubdivisionId(String status, Long subdivisionId);
     List<PermitApplication> findByStatusAndPoliceStation_PoliceStationId(String status, Long policeStationId);
     List<PermitApplication> findByStatusAndAssignedOc_UserId(String status, Long userId);
+    
+    // New methods for jurisdiction-aware application retrieval (all applications, not filtered by status/stage)
+    List<PermitApplication> findByPoliceStation_Subdivision_SubdivisionId(Long subdivisionId);
+    List<PermitApplication> findByPoliceStation_PoliceStationId(Long policeStationId);
+    List<PermitApplication> findByAssignedOc_UserId(Long userId);
 }

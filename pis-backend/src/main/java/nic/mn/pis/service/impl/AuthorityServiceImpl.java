@@ -66,7 +66,8 @@ public class AuthorityServiceImpl implements AuthorityService {
                 history.getNewStage(),
                 history.getPreviousStatus(),
                 history.getNewStatus(),
-                history.getActionAt()))
+                history.getActionAt(),
+                history.getActorFullName()))
             .collect(Collectors.toList());
         }
 
@@ -158,7 +159,7 @@ public class AuthorityServiceImpl implements AuthorityService {
      * Stage: DC_PENDING → SP_PENDING
      */
     @Override
-    public PermitApplicationDto forwardToSP(Long applicationId, String dcRemarks) {
+    public PermitApplicationDto forwardToSP(Long applicationId, String dcRemarks, Long dcUserId) {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
@@ -166,9 +167,9 @@ public class AuthorityServiceImpl implements AuthorityService {
         app.setDcRemarks(dcRemarks);
         app.setCurrentStage("SP_PENDING");
         app.setStatus("FORWARDED_TO_SP");
-
+        
         PermitApplication saved = permitApplicationRepository.save(app);
-        saveHistory(saved, "DC", "FORWARDED_TO_SP", dcRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
+        saveHistory(saved, "DC", "FORWARDED_TO_SP", dcRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus(), dcUserId != null ? userRepository.findById(dcUserId).map(User::getFullName).orElse(null) : null);
 
         return PermitApplicationMapper.mapToDto(saved);
     }
@@ -179,7 +180,7 @@ public class AuthorityServiceImpl implements AuthorityService {
      * Stage: SP_PENDING → SDPO_PENDING
      */
     @Override
-    public PermitApplicationDto forwardToSDPO(Long applicationId, String spRemarks) {
+    public PermitApplicationDto forwardToSDPO(Long applicationId, String spRemarks, Long spUserId) {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
@@ -187,9 +188,10 @@ public class AuthorityServiceImpl implements AuthorityService {
         app.setSpRemarks(spRemarks);
         app.setCurrentStage("SDPO_PENDING");
         app.setStatus("FORWARDED_TO_SDPO");
-
+        
+        // Capture SP's full name
         PermitApplication saved = permitApplicationRepository.save(app);
-        saveHistory(saved, "SP", "FORWARDED_TO_SDPO", spRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
+        saveHistory(saved, "SP", "FORWARDED_TO_SDPO", spRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus(), spUserId != null ? userRepository.findById(spUserId).map(User::getFullName).orElse(null) : null);
 
         return PermitApplicationMapper.mapToDto(saved);
     }
@@ -200,7 +202,7 @@ public class AuthorityServiceImpl implements AuthorityService {
      * Stage: SDPO_PENDING → OC_PENDING
      */
     @Override
-    public PermitApplicationDto forwardToOC(Long applicationId, String sdpoRemarks) {
+    public PermitApplicationDto forwardToOC(Long applicationId, String sdpoRemarks, Long sdpoUserId) {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
@@ -223,9 +225,9 @@ public class AuthorityServiceImpl implements AuthorityService {
         app.setSdpoRemarks(sdpoRemarks);
         app.setCurrentStage("OC_PENDING");
         app.setStatus("FORWARDED_TO_OC");
-
+        
         PermitApplication saved = permitApplicationRepository.save(app);
-        saveHistory(saved, "SDPO", "FORWARDED_TO_OC", sdpoRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
+        saveHistory(saved, "SDPO", "FORWARDED_TO_OC", sdpoRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus(), sdpoUserId != null ? userRepository.findById(sdpoUserId).map(User::getFullName).orElse(null) : null);
 
         return PermitApplicationMapper.mapToDto(saved);
     }
@@ -236,7 +238,7 @@ public class AuthorityServiceImpl implements AuthorityService {
      * Stage: OC_PENDING → SDPO_REVIEW_PENDING
      */
     @Override
-    public PermitApplicationDto submitOCReport(Long applicationId, String ocSummary, MultipartFile pdfFile) throws IOException {
+    public PermitApplicationDto submitOCReport(Long applicationId, String ocSummary, MultipartFile pdfFile, Long ocUserId) throws IOException {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
@@ -264,8 +266,9 @@ public class AuthorityServiceImpl implements AuthorityService {
         if (saved.getOcReportPdfFileName() != null) {
             historyMessage += " [PDF: " + saved.getOcReportPdfFileName() + "]";
         }
-        saveHistory(saved, "OC", "OC_REPORT_SUBMITTED", historyMessage,
-                previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
+        saveHistory(saved, "OC", "OC_VERIFIED", historyMessage,
+                previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus(),
+                ocUserId != null ? userRepository.findById(ocUserId).map(User::getFullName).orElse(null) : null);
 
         return PermitApplicationMapper.mapToDto(saved);
     }
@@ -276,7 +279,7 @@ public class AuthorityServiceImpl implements AuthorityService {
      * Stage: SDPO_REVIEW_PENDING → SP_REVIEW_PENDING
      */
     @Override
-    public PermitApplicationDto forwardToSPFromSDPO(Long applicationId, String sdpoRemarks) {
+    public PermitApplicationDto forwardToSPFromSDPO(Long applicationId, String sdpoRemarks, Long sdpoUserId) {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
@@ -284,9 +287,9 @@ public class AuthorityServiceImpl implements AuthorityService {
         app.setSdpoRemarks(sdpoRemarks);
         app.setCurrentStage("SP_REVIEW_PENDING");
         app.setStatus("SDPO_REVIEWED");
-
+        
         PermitApplication saved = permitApplicationRepository.save(app);
-        saveHistory(saved, "SDPO", "FORWARDED_TO_SP_REVIEW", sdpoRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
+        saveHistory(saved, "SDPO", "SDPO_REVIEWED", sdpoRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus(), sdpoUserId != null ? userRepository.findById(sdpoUserId).map(User::getFullName).orElse(null) : null);
 
         return PermitApplicationMapper.mapToDto(saved);
     }
@@ -297,7 +300,7 @@ public class AuthorityServiceImpl implements AuthorityService {
      * Stage: SP_REVIEW_PENDING → DC_FINAL_PENDING
      */
     @Override
-    public PermitApplicationDto recommendToDC(Long applicationId, String spRemarks) {
+    public PermitApplicationDto recommendToDC(Long applicationId, String spRemarks, Long spUserId) {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
@@ -305,9 +308,9 @@ public class AuthorityServiceImpl implements AuthorityService {
         app.setSpRemarks(spRemarks);
         app.setCurrentStage("DC_FINAL_PENDING");
         app.setStatus("SP_RECOMMENDED");
-
+        
         PermitApplication saved = permitApplicationRepository.save(app);
-        saveHistory(saved, "SP", "RECOMMENDED_TO_DC", spRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
+        saveHistory(saved, "SP", "SP_RECOMMENDED", spRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus(), spUserId != null ? userRepository.findById(spUserId).map(User::getFullName).orElse(null) : null);
 
         return PermitApplicationMapper.mapToDto(saved);
     }
@@ -318,7 +321,7 @@ public class AuthorityServiceImpl implements AuthorityService {
      * Stage: DC_FINAL_PENDING → COMPLETED
      */
     @Override
-    public PermitApplicationDto approveByDC(Long applicationId, String dcRemarks) {
+    public PermitApplicationDto approveByDC(Long applicationId, String dcRemarks, Long dcUserId) {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
@@ -326,7 +329,7 @@ public class AuthorityServiceImpl implements AuthorityService {
         app.setDcRemarks(dcRemarks);
         app.setCurrentStage("COMPLETED");
         app.setStatus("APPROVED");
-
+        
         try {
             generatePermitPdf(app);
         } catch (IOException e) {
@@ -334,7 +337,7 @@ public class AuthorityServiceImpl implements AuthorityService {
         }
 
         PermitApplication saved = permitApplicationRepository.save(app);
-        saveHistory(saved, "DC", "APPROVED", dcRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
+        saveHistory(saved, "DC", "APPROVED", dcRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus(), dcUserId != null ? userRepository.findById(dcUserId).map(User::getFullName).orElse(null) : null);
 
         return PermitApplicationMapper.mapToDto(saved);
     }
@@ -363,7 +366,7 @@ public class AuthorityServiceImpl implements AuthorityService {
      * Stage: DC_FINAL_PENDING → COMPLETED
      */
     @Override
-    public PermitApplicationDto rejectByDC(Long applicationId, String dcRemarks) {
+    public PermitApplicationDto rejectByDC(Long applicationId, String dcRemarks, Long dcUserId) {
         PermitApplication app = getApplication(applicationId);
         String previousStage = app.getCurrentStage();
         String previousStatus = app.getStatus();
@@ -371,9 +374,9 @@ public class AuthorityServiceImpl implements AuthorityService {
         app.setDcRemarks(dcRemarks);
         app.setCurrentStage("COMPLETED");
         app.setStatus("REJECTED");
-
+        
         PermitApplication saved = permitApplicationRepository.save(app);
-        saveHistory(saved, "DC", "REJECTED", dcRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus());
+        saveHistory(saved, "DC", "REJECTED", dcRemarks, previousStage, saved.getCurrentStage(), previousStatus, saved.getStatus(), dcUserId != null ? userRepository.findById(dcUserId).map(User::getFullName).orElse(null) : null);
 
         return PermitApplicationMapper.mapToDto(saved);
     }
@@ -385,7 +388,8 @@ public class AuthorityServiceImpl implements AuthorityService {
                              String previousStage,
                              String newStage,
                              String previousStatus,
-                             String newStatus) {
+                             String newStatus,
+                             String actorFullName) {
         AuthorityActionHistory history = new AuthorityActionHistory();
         history.setPermitApplication(app);
         history.setAuthorityRole(authorityRole);
@@ -396,6 +400,7 @@ public class AuthorityServiceImpl implements AuthorityService {
         history.setPreviousStatus(previousStatus);
         history.setNewStatus(newStatus);
         history.setActionAt(LocalDateTime.now());
+        history.setActorFullName(actorFullName);
         authorityActionHistoryRepository.save(history);
     }
 
@@ -729,5 +734,50 @@ public class AuthorityServiceImpl implements AuthorityService {
                 .replace("\t", " ")
                 .replace("\u200B", "")
                 .replace("\u00A0", " ");
+    }
+
+    @Override
+    public List<PermitApplicationDto> getAllApplicationsByJurisdiction(String roleId, Long userId) {
+        List<PermitApplication> applications;
+
+        if ("4".equals(roleId)) {
+            // SDPO - Get applications from their subdivision
+            if (userId == null) {
+                return Collections.emptyList();
+            }
+
+            User sdpoUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            if (sdpoUser.getSubdivision() == null || sdpoUser.getSubdivision().getSubdivisionId() == null) {
+                return Collections.emptyList();
+            }
+
+            applications = permitApplicationRepository.findByPoliceStation_Subdivision_SubdivisionId(
+                    sdpoUser.getSubdivision().getSubdivisionId());
+        } else if ("5".equals(roleId)) {
+            // OC - Get applications from their police station
+            if (userId == null) {
+                return Collections.emptyList();
+            }
+
+            User ocUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+            if (ocUser.getPoliceStation() != null && ocUser.getPoliceStation().getPoliceStationId() != null) {
+                applications = permitApplicationRepository.findByPoliceStation_PoliceStationId(
+                        ocUser.getPoliceStation().getPoliceStationId());
+            } else {
+                applications = permitApplicationRepository.findByAssignedOc_UserId(userId);
+            }
+        } else {
+            // DC/SP - Get all applications
+            applications = permitApplicationRepository.findAll();
+        }
+
+        return applications
+                .stream()
+                .map(PermitApplicationMapper::mapToDto)
+                .collect(Collectors.toList());
     }
 }

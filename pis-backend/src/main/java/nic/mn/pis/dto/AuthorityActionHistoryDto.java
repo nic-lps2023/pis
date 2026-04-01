@@ -21,4 +21,5 @@ public class AuthorityActionHistoryDto {
     private String previousStatus;
     private String newStatus;
     private LocalDateTime actionAt;
+    private String actorFullName;
 }

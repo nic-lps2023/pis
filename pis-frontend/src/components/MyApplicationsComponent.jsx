@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getUserId } from "../services/AuthService";
 import {
   getApplicationsByUserId,
@@ -10,7 +11,12 @@ const MyApplicationsComponent = () => {
   const [applications, setApplications] = useState([]);
   const [selectedApplication, setSelectedApplication] = useState(null);
 
+  const navigate = useNavigate();
   const userId = getUserId();
+
+  const goToTimeline = (applicationId) => {
+    navigate(`/application/${applicationId}/timeline`);
+  };
 
   useEffect(() => {
     if (!userId) {
@@ -163,7 +169,12 @@ const MyApplicationsComponent = () => {
                 </button>
               </td>
               <td>
-                <b>{app.status}</b>
+                <button
+                  className="btn btn-link p-0"
+                  onClick={() => goToTimeline(app.applicationId)}
+                >
+                  <b>{app.status}</b>
+                </button>
                 {app.status === "REJECTED" && app.dcRemarks && (
                   <div className="text-danger mt-1">
                     <small><b>Reason:</b> {app.dcRemarks}</small>

@@ -47,4 +47,7 @@ public class AuthorityActionHistory {
 
     @Column(nullable = false)
     private LocalDateTime actionAt;
+
+    @Column(length = 255)
+    private String actorFullName;
 }

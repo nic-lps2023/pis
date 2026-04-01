@@ -12,6 +12,7 @@ import SDPODashboard from "./components/authority/SDPODashboard";
 import OCDashboard from "./components/authority/OCDashboard";
 import DCDashboard from "./components/authority/DCDashboard";
 import AuthorityApplicationDetails from "./components/authority/AuthorityApplicationDetails";
+import ApplicationTimelineComponent from "./components/ApplicationTimelineComponent";
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
@@ -42,6 +43,15 @@ function App() {
             element={
               <PrivateRoute allowedRoles={[7]}>
                 <MyApplicationsComponent />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/application/:id/timeline"
+            element={
+              <PrivateRoute allowedRoles={[2, 3, 4, 5, 6, 7]}>
+                <ApplicationTimelineComponent />
               </PrivateRoute>
             }
           />

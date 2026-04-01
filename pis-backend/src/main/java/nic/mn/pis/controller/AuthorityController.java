@@ -83,14 +83,28 @@ public class AuthorityController {
     }
 
     /**
+     * Get all applications with role-based jurisdiction filtering
+     * For SDPO: Returns applications from police stations in their subdivision
+     * For OC: Returns applications from their police station
+     * For others: Returns all applications
+     */
+    @GetMapping("/sdpo/all-applications")
+    public ResponseEntity<List<PermitApplicationDto>> getAllApplicationsByJurisdiction(
+            @RequestHeader(value = "X-Role-Id", required = false) String roleId,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return ResponseEntity.ok(authorityService.getAllApplicationsByJurisdiction(roleId, userId));
+    }
+
+    /**
      * Deputy Commissioner forwards application to State Police (SP)
      * Transitions: DC_PENDING → SP_PENDING, SUBMITTED → FORWARDED_TO_SP
      */
     @PutMapping("/dc/forward-sp/{id}")
     public ResponseEntity<PermitApplicationDto> forwardToSP(
             @PathVariable Long id,
-            @RequestBody AuthorityActionRequest request) {
-        return ResponseEntity.ok(authorityService.forwardToSP(id, request.getRemarks()));
+            @RequestBody AuthorityActionRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return ResponseEntity.ok(authorityService.forwardToSP(id, request.getRemarks(), userId));
     }
 
     /**
@@ -100,8 +114,9 @@ public class AuthorityController {
     @PutMapping("/sp/forward-sdpo/{id}")
     public ResponseEntity<PermitApplicationDto> forwardToSDPO(
             @PathVariable Long id,
-            @RequestBody AuthorityActionRequest request) {
-        return ResponseEntity.ok(authorityService.forwardToSDPO(id, request.getRemarks()));
+            @RequestBody AuthorityActionRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return ResponseEntity.ok(authorityService.forwardToSDPO(id, request.getRemarks(), userId));
     }
 
     /**
@@ -111,8 +126,9 @@ public class AuthorityController {
     @PutMapping("/sdpo/forward-oc/{id}")
     public ResponseEntity<PermitApplicationDto> forwardToOC(
             @PathVariable Long id,
-            @RequestBody AuthorityActionRequest request) {
-        return ResponseEntity.ok(authorityService.forwardToOC(id, request.getRemarks()));
+            @RequestBody AuthorityActionRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return ResponseEntity.ok(authorityService.forwardToOC(id, request.getRemarks(), userId));
     }
 
     /**
@@ -126,9 +142,10 @@ public class AuthorityController {
     public ResponseEntity<PermitApplicationDto> submitOCReport(
             @PathVariable Long id,
             @RequestParam("summary") String summary,
-            @RequestParam(value = "pdfFile", required = false) MultipartFile pdfFile) {
+            @RequestParam(value = "pdfFile", required = false) MultipartFile pdfFile,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
         try {
-            return ResponseEntity.ok(authorityService.submitOCReport(id, summary, pdfFile));
+            return ResponseEntity.ok(authorityService.submitOCReport(id, summary, pdfFile, userId));
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
@@ -143,8 +160,9 @@ public class AuthorityController {
     @PutMapping("/sdpo/forward-sp/{id}")
     public ResponseEntity<PermitApplicationDto> forwardToSPFromSDPO(
             @PathVariable Long id,
-            @RequestBody AuthorityActionRequest request) {
-        return ResponseEntity.ok(authorityService.forwardToSPFromSDPO(id, request.getRemarks()));
+            @RequestBody AuthorityActionRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return ResponseEntity.ok(authorityService.forwardToSPFromSDPO(id, request.getRemarks(), userId));
     }
 
     /**
@@ -154,8 +172,9 @@ public class AuthorityController {
     @PutMapping("/sp/recommend-dc/{id}")
     public ResponseEntity<PermitApplicationDto> recommendToDC(
             @PathVariable Long id,
-            @RequestBody AuthorityActionRequest request) {
-        return ResponseEntity.ok(authorityService.recommendToDC(id, request.getRemarks()));
+            @RequestBody AuthorityActionRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return ResponseEntity.ok(authorityService.recommendToDC(id, request.getRemarks(), userId));
     }
 
     /**
@@ -165,8 +184,9 @@ public class AuthorityController {
     @PutMapping("/dc/approve/{id}")
     public ResponseEntity<PermitApplicationDto> approveByDC(
             @PathVariable Long id,
-            @RequestBody AuthorityActionRequest request) {
-        return ResponseEntity.ok(authorityService.approveByDC(id, request.getRemarks()));
+            @RequestBody AuthorityActionRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return ResponseEntity.ok(authorityService.approveByDC(id, request.getRemarks(), userId));
     }
 
     /**
@@ -176,7 +196,8 @@ public class AuthorityController {
     @PutMapping("/dc/reject/{id}")
     public ResponseEntity<PermitApplicationDto> rejectByDC(
             @PathVariable Long id,
-            @RequestBody AuthorityActionRequest request) {
-        return ResponseEntity.ok(authorityService.rejectByDC(id, request.getRemarks()));
+            @RequestBody AuthorityActionRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        return ResponseEntity.ok(authorityService.rejectByDC(id, request.getRemarks(), userId));
     }
 }

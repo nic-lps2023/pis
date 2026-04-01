@@ -44,27 +44,30 @@ public interface AuthorityService {
      * Transitions from DC_PENDING to SP_PENDING
      * @param applicationId the application ID
      * @param dcRemarks remarks from deputy commissioner
+     * @param dcUserId logged-in DC user ID (used to capture DC's full name)
      * @return updated application DTO
      */
-    PermitApplicationDto forwardToSP(Long applicationId, String dcRemarks);
+    PermitApplicationDto forwardToSP(Long applicationId, String dcRemarks, Long dcUserId);
 
     /**
      * State Police forwards application to Sub-Divisional Police Officer (SDPO)
      * Transitions from SP_PENDING to SDPO_PENDING
      * @param applicationId the application ID
      * @param spRemarks remarks from state police
+     * @param spUserId logged-in SP user ID (used to capture SP's full name)
      * @return updated application DTO
      */
-    PermitApplicationDto forwardToSDPO(Long applicationId, String spRemarks);
+    PermitApplicationDto forwardToSDPO(Long applicationId, String spRemarks, Long spUserId);
 
     /**
      * Sub-Divisional Police Officer forwards to Officer-in-Charge (OC)
      * Transitions from SDPO_PENDING to OC_PENDING
      * @param applicationId the application ID
      * @param sdpoRemarks remarks from SDPO
+     * @param sdpoUserId logged-in SDPO user ID (used to capture SDPO's full name)
      * @return updated application DTO
      */
-    PermitApplicationDto forwardToOC(Long applicationId, String sdpoRemarks);
+    PermitApplicationDto forwardToOC(Long applicationId, String sdpoRemarks, Long sdpoUserId);
 
     /**
      * Officer-in-Charge submits investigation: a short summary text plus an optional PDF attachment.
@@ -72,36 +75,40 @@ public interface AuthorityService {
      * @param applicationId the application ID
      * @param ocSummary short summary of findings (stored in workflow/history)
      * @param pdfFile   optional full investigation report PDF (may be null)
+     * @param ocUserId logged-in OC user ID (used to capture OC's full name)
      * @return updated application DTO
      */
-    PermitApplicationDto submitOCReport(Long applicationId, String ocSummary, MultipartFile pdfFile) throws IOException;
+    PermitApplicationDto submitOCReport(Long applicationId, String ocSummary, MultipartFile pdfFile, Long ocUserId) throws IOException;
 
     /**
      * Sub-Divisional Police Officer forwards OC report back to State Police for review
      * Transitions from SDPO_REVIEW_PENDING to SP_REVIEW_PENDING
      * @param applicationId the application ID
      * @param sdpoRemarks additional remarks from SDPO
+     * @param sdpoUserId logged-in SDPO user ID (used to capture SDPO's full name)
      * @return updated application DTO
      */
-    PermitApplicationDto forwardToSPFromSDPO(Long applicationId, String sdpoRemarks);
+    PermitApplicationDto forwardToSPFromSDPO(Long applicationId, String sdpoRemarks, Long sdpoUserId);
 
     /**
      * State Police recommends application to Deputy Commissioner
      * Transitions from SP_REVIEW_PENDING to DC_FINAL_PENDING
      * @param applicationId the application ID
      * @param spRemarks recommendation from state police
+     * @param spUserId logged-in SP user ID (used to capture SP's full name)
      * @return updated application DTO
      */
-    PermitApplicationDto recommendToDC(Long applicationId, String spRemarks);
+    PermitApplicationDto recommendToDC(Long applicationId, String spRemarks, Long spUserId);
 
     /**
      * Deputy Commissioner approves application and generates permit
      * Transitions from DC_FINAL_PENDING to COMPLETED with status APPROVED
      * @param applicationId the application ID
      * @param dcRemarks final remarks from deputy commissioner
+     * @param dcUserId logged-in DC user ID (used to capture DC's full name)
      * @return updated application DTO with APPROVED status
      */
-    PermitApplicationDto approveByDC(Long applicationId, String dcRemarks);
+    PermitApplicationDto approveByDC(Long applicationId, String dcRemarks, Long dcUserId);
 
     /**
      * Regenerate permit PDF for an already approved application.
@@ -115,7 +122,20 @@ public interface AuthorityService {
      * Transitions from DC_FINAL_PENDING to COMPLETED with status REJECTED
      * @param applicationId the application ID
      * @param dcRemarks rejection reason from deputy commissioner
+     * @param dcUserId logged-in DC user ID (used to capture DC's full name)
      * @return updated application DTO with REJECTED status
      */
-    PermitApplicationDto rejectByDC(Long applicationId, String dcRemarks);
+    PermitApplicationDto rejectByDC(Long applicationId, String dcRemarks, Long dcUserId);
+
+    /**
+     * Get all applications with role-based jurisdiction filtering
+     * For SDPO: Returns applications from police stations in their subdivision
+     * For OC: Returns applications from their police station
+     * For DC/SP: Returns all applications
+     *
+     * @param roleId authority role id from request header
+     * @param userId logged in user id from request header
+     * @return list of applications matching role-specific jurisdiction filter
+     */
+    List<PermitApplicationDto> getAllApplicationsByJurisdiction(String roleId, Long userId);
 }
