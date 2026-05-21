@@ -429,7 +429,7 @@ const UserComponent = () => {
             <form>
               <div className="form-group mb-2">
                 <label className="form-label">
-                  Full Name <span className="text-danger">*</span>
+                  Name of Organisation / Applicant <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"

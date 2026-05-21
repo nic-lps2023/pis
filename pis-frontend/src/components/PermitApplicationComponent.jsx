@@ -7,6 +7,7 @@ import {
   getPoliceStationsBySubdivisionId,
   getSubdivisionsByDistrictId,
 } from "../services/LocationService";
+import MapSelectionModal from "./MapSelectionModal";
 
 const PermitApplicationComponent = () => {
   const MAX_FILE_SIZE_BYTES = 300 * 1024;
@@ -28,6 +29,7 @@ const PermitApplicationComponent = () => {
   const [districts, setDistricts] = useState([]);
   const [subdivisions, setSubdivisions] = useState([]);
   const [policeStations, setPoliceStations] = useState([]);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [errors, setErrors] = useState({
     eventTitle: "",
     purpose: "",
@@ -238,20 +240,12 @@ const PermitApplicationComponent = () => {
   };
 
   const showEventOnMap = () => {
-    const query =
-      latitude && longitude
-        ? `${latitude},${longitude}`
-        : [venueName, fullAddress, pincode].filter(Boolean).join(", ");
+    setIsMapModalOpen(true);
+  };
 
-    if (!query.trim()) {
-      alert("Please enter venue/address first.");
-      return;
-    }
-
-    window.open(
-      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
-      "_blank"
-    );
+  const handleLocationSelect = (lat, lng) => {
+    setLatitude(lat.toString());
+    setLongitude(lng.toString());
   };
 
   return (
@@ -283,7 +277,7 @@ const PermitApplicationComponent = () => {
 
             <div className="form-group mb-2">
               <label className="form-label">
-                Purpose of Event:<span className="text-danger ms-1">*</span>
+                Description of Event:<span className="text-danger ms-1">*</span>
               </label>
               <textarea
                 className={`form-control ${errors.purpose ? "is-invalid" : ""}`}
@@ -355,6 +349,8 @@ const PermitApplicationComponent = () => {
                 <option value="Concert">Concert</option>
                 <option value="Flying drone">Flying drone</option>
                 <option value="Processions">Processions</option>
+                <option value="Thabal Chongba">Thabal Chongba</option>
+                <option value="Festival Related">Festival Related</option>
                 <option value="Others">Others</option>
               </select>
               {errors.permitType && (
@@ -581,6 +577,14 @@ const PermitApplicationComponent = () => {
           </form>
         </div>
       </div>
+
+      <MapSelectionModal
+        isOpen={isMapModalOpen}
+        onClose={() => setIsMapModalOpen(false)}
+        onLocationSelect={handleLocationSelect}
+        initialLat={latitude}
+        initialLng={longitude}
+      />
     </div>
   );
 };

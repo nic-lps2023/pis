@@ -26,7 +26,11 @@ const MyApplicationsComponent = () => {
 
     getApplicationsByUserId(userId)
       .then((response) => {
-        setApplications(response.data);
+        // Sort applications by Application ID in descending order
+        const sortedApplications = response.data.sort(
+          (a, b) => Number(b.applicationId) - Number(a.applicationId)
+        );
+        setApplications(sortedApplications);
       })
       .catch((error) => {
         console.error(error);
